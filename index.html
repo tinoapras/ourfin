@@ -1,29 +1,35 @@
 <!DOCTYPE html>
-<html>
-
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JSFiddle kzbronf6</title>
-
-  <style>
-    
-  </style>
-
-  
-</head>
-<body>
-  <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Ultimate Perfection 17.0</title>
+  <title>OURFIN - Cloud Sync 18.0</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Firebase App & Firestore SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyCBk_eKf3ZTSxjHJP19NraaAYPDrwK9Gw",
+      authDomain: "ourfin-db.firebaseapp.com",
+      projectId: "ourfin-db",
+      storageBucket: "ourfin-db.firebasestorage.app",
+      messagingSenderId: "581190866520",
+      appId: "1:581190866520:web:6f2c37a910a82a08d15c2d",
+      measurementId: "G-R29WFS6R08"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.db = db;
+    window.FirestoreModule = { collection, onSnapshot, addDoc, deleteDoc, doc, setDoc };
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
   
@@ -104,12 +110,11 @@
       const currentMonthIndex = today.getMonth(); 
       const currentYm = `${currentYear}-${String(currentMonthIndex+1).padStart(2, '0')}`;
 
-      // Report Volume Bar & Unlimited Year State
       const [reportMonthIndex, setReportMonthIndex] = useState(currentMonthIndex);
       const [reportYear, setReportYear] = useState(currentYear);
       const reportYm = `${reportYear}-${String(reportMonthIndex + 1).padStart(2, '0')}`;
 
-      // --- DATABASE STATE ---
+      // --- DATABASE STATE (FIREBASE REAL-TIME SYNC) ---
       const [accounts, setAccounts] = useState([
         { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance', initial: 1000000 },
         { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance', initial: 500000 },
@@ -120,18 +125,41 @@
       const [incomeCats, setIncomeCats] = useState(['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya']);
       const [expenseCats, setExpenseCats] = useState(['Groceries', 'Kebutuhan Pokok', 'Keinginan', 'Transport', 'Bayi & Anak', 'Listrik & Air']);
 
-      const [transactions, setTransactions] = useState([
-        { id: 1, type: 'Income', amount: 7000000, category: 'Gaji', accountId: 'a1', date: `${currentYm}-01`, desc: 'Gaji Bulanan', creator: 'Suami', icon: 'payments' },
-        { id: 2, type: 'Expense', amount: 1000000, category: 'Kebutuhan Pokok', accountId: 'a2', date: `${currentYm}-05`, desc: 'Belanja Dapur', creator: 'Istri', icon: 'shopping_cart' },
-        { id: 3, type: 'Goal', amount: 1500000, category: 'Dana Darurat', accountId: 'a1', date: `${currentYm}-06`, desc: 'Tabungan Wajib', creator: 'Suami', icon: 'shield' },
-        { id: 4, type: 'Investasi', amount: 1000000, category: 'Bibit Reksadana', accountId: 'a1', date: `${currentYm}-08`, desc: 'Reksadana Saham', creator: 'Suami', icon: 'trending_up' },
-        { id: 5, type: 'Bill', amount: 500000, category: 'Listrik & WiFi', accountId: 'a1', date: `${currentYm}-10`, desc: 'Tagihan Bulanan', creator: 'Suami', icon: 'receipt_long' },
-      ]);
-
+      const [transactions, setTransactions] = useState([]);
       const [budgets, setBudgets] = useState([{ id: 'b1', category: 'Kebutuhan Pokok', limit: 3500000, icon: 'home' }]);
       const [goals, setGoals] = useState([{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }]);
       const [bills, setBills] = useState([{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }]);
       const [investments, setInvestments] = useState([{ id: 'i1', name: 'Bibit Reksadana', icon: 'trending_up', mockReturnPct: 2.35 }]);
+
+      // Realtime Listener dari Firestore
+      useEffect(() => {
+        const interval = setInterval(() => {
+          if (window.db && window.FirestoreModule) {
+            clearInterval(interval);
+            const { collection, onSnapshot } = window.FirestoreModule;
+            onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
+              const txs = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+              if (txs.length > 0) setTransactions(txs);
+              else {
+                // Default initial seed if empty
+                setTransactions([
+                  { id: 1, type: 'Income', amount: 7000000, category: 'Gaji', accountId: 'a1', date: `${currentYm}-01`, desc: 'Gaji Bulanan', creator: 'Suami', icon: 'payments' },
+                  { id: 2, type: 'Expense', amount: 1000000, category: 'Kebutuhan Pokok', accountId: 'a2', date: `${currentYm}-05`, desc: 'Belanja Dapur', creator: 'Istri', icon: 'shopping_cart' },
+                ]);
+              }
+            });
+          }
+        }, 300);
+      }, []);
+
+      const addTransactionToCloud = async (newTx) => {
+        if (window.db && window.FirestoreModule) {
+          const { collection, addDoc } = window.FirestoreModule;
+          await addDoc(collection(window.db, 'transactions'), newTx);
+        } else {
+          setTransactions([...transactions, newTx]);
+        }
+      };
 
       // --- FINANCIAL ENGINE ---
       const calculatedAccounts = useMemo(() => {
@@ -156,20 +184,17 @@
 
       const totalGoalsSaved = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
 
-      // Overview Calculations
-      const overviewTx = transactions.filter(tx => tx.date.startsWith(currentYm));
+      const overviewTx = transactions.filter(tx => tx.date && tx.date.startsWith(currentYm));
       const overviewInc = overviewTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
       const overviewExp = overviewTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
 
-      // --- REPORT & ALL-TIME ACCUMULATION CALCULATIONS ---
-      const reportTx = transactions.filter(tx => tx.date.startsWith(reportYm));
+      const reportTx = transactions.filter(tx => tx.date && tx.date.startsWith(reportYm));
       const reportInc = reportTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
       const reportExp = reportTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
       const reportGoals = reportTx.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
       const reportInvest = reportTx.filter(t => t.type === 'Investasi').reduce((sum, t) => sum + t.amount, 0);
       const reportBills = reportTx.filter(t => t.type === 'Bill').reduce((sum, t) => sum + t.amount, 0);
 
-      // Akumulasi Total Keseluruhan (All-Time)
       const totalAllIncome = transactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
       const totalAllExpense = transactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
       const totalAllGoals = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
@@ -293,7 +318,7 @@
                       {[...transactions].reverse().slice(0, 5).map(tx => {
                         const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
                         return (
-                        <div key={tx.id} className="flex items-center p-4 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[20px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', txs: [tx] })}>
+                        <div key={tx.docId || tx.id} className="flex items-center p-4 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[20px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', txs: [tx] })}>
                           <div className={`w-12 h-12 rounded-[16px] flex items-center justify-center mr-4 shadow-sm
                             ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
                             <span className="material-symbols-rounded text-[22px]">{tx.icon}</span>
@@ -337,7 +362,7 @@
 
                   <div className="space-y-4">
                     {planTab === 'Budget' && budgets.map(b => {
-                      const spent = transactions.filter(tx => tx.date.startsWith(currentYm) && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + tx.amount, 0);
+                      const spent = transactions.filter(tx => tx.date && tx.date.startsWith(currentYm) && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + tx.amount, 0);
                       const pct = Math.min(100, (spent / b.limit) * 100);
                       return (
                         <div key={b.id} onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })} className={`${glassClass} p-6 rounded-[28px] cursor-pointer hover:scale-[1.02] transition-transform`}>
@@ -427,12 +452,11 @@
                 </div>
               )}
 
-              {/* === REPORT DETAIL (DENGAN INPUT TAHUN UNLIMITED & PIE CHART) === */}
+              {/* === REPORT DETAIL === */}
               {view === 'Report' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-6">
                   <h2 className="text-[28px] font-extrabold tracking-tight">{t.report}</h2>
                   
-                  {/* Pilihan Tahun Unlimited & Volume Bar Bulan */}
                   <div className={`${glassClass} p-5 rounded-[28px] space-y-4`}>
                     <div className="flex justify-between items-center">
                       <span className="text-[11px] font-bold uppercase tracking-widest opacity-60">{t.timelineBar}</span>
@@ -459,7 +483,6 @@
                     </div>
                   </div>
 
-                  {/* Kartu Ringkasan Bulanan */}
                   <div className={`${glassClass} p-7 rounded-[32px] shadow-sm space-y-4`}>
                     <h3 className="font-bold text-[15px] tracking-tight text-center mb-4">{t.month[reportMonthIndex]} {reportYear}</h3>
                     <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
@@ -484,7 +507,6 @@
                     </div>
                   </div>
 
-                  {/* Pie Chart Bulanan yang Sederhana & Bersih */}
                   <div className={`${glassClass} p-7 rounded-[32px] shadow-sm`}>
                     <h3 className="font-bold mb-6 text-[15px] tracking-tight text-center">{t.pieChartTitle}</h3>
                     {reportDistribution.length === 0 ? (
@@ -514,7 +536,6 @@
                     )}
                   </div>
 
-                  {/* AKUMULASI TOTAL KESELURUHAN (ALL-TIME) */}
                   <div className={`${glassClass} p-7 rounded-[32px] shadow-sm space-y-4`}>
                     <h3 className="font-bold text-[15px] tracking-tight text-center mb-4">{t.allTimeAccumulation}</h3>
                     <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
@@ -581,7 +602,7 @@
                   </div>
                   
                   <div className="text-center opacity-40 text-[11px] font-bold tracking-widest mt-8">
-                    OURFIN VERSION 17.0
+                    OURFIN VERSION 18.0 CLOUD SYNC
                   </div>
                 </div>
               )}
@@ -682,7 +703,7 @@
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
                     {detailData.txs.length === 0 && <p className="text-center opacity-50 py-10 text-[13px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No transaction history.'}</p>}
                     {detailData.txs.map(tx => (
-                      <div key={tx.id} className="p-4 bg-black/5 dark:bg-white/5 rounded-[20px] flex justify-between items-center">
+                      <div key={tx.docId || tx.id} className="p-4 bg-black/5 dark:bg-white/5 rounded-[20px] flex justify-between items-center">
                         <div className="truncate pr-4">
                           <p className="font-bold text-[14px] tracking-tight truncate">{tx.desc}</p>
                           <p className="text-[10px] opacity-50 mt-1 font-semibold">{tx.date} • {tx.creator}</p>
@@ -709,7 +730,10 @@
             {modal === 'Transaction' && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[40px] p-7 pb-12 shadow-2xl transition-colors`}>
-                  <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} onClose={() => setModal(null)} onSave={(tx) => { setTransactions([...transactions, { ...tx, id: Date.now(), date: currentYm + '-15', creator: activeUser.name }]); setModal(null); }} />
+                  <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} onClose={() => setModal(null)} onSave={(tx) => { 
+                    addTransactionToCloud({ ...tx, date: currentYm + '-15', creator: activeUser.name, createdAt: Date.now() }); 
+                    setModal(null); 
+                  }} />
                 </div>
               </div>
             )}
@@ -953,7 +977,7 @@
                 {type === 'Income' && incomeCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 {type === 'Goal' && goals.map(g => <option key={g.name} value={g.name} className="text-black">{g.name}</option>)}
                 {type === 'Bill' && bills.map(b => <option key={b.name} value={b.name} className="text-black">{b.name}</option>)}
-                {type === 'Investasi' && investments.app(i => <option key={i.name} value={i.name} className="text-black">{i.name}</option>)}
+                {type === 'Investasi' && investments.map(i => <option key={i.name} value={i.name} className="text-black">{i.name}</option>)}
               </select>
             </div>
           </div>
@@ -971,13 +995,6 @@
     }
 
     ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-</body>
-</html>
-
-
-  <script>
-    
   </script>
 </body>
 </html>
