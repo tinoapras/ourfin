@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Cloud Sync 18.2</title>
+  <title>OURFIN - Cloud Sync 18.3</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -47,7 +47,8 @@
     }
   </script>
   <style>
-    body { margin: 0; overflow: hidden; background-color: #F5F5F7; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
+    body { margin: 0; background-color: #E5E5EA; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
+    .dark body { background-color: #000000; }
     .bg-mesh {
       background-image: 
         radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.12) 0px, transparent 50%),
@@ -55,8 +56,8 @@
         radial-gradient(at 100% 100%, rgba(175, 82, 222, 0.08) 0px, transparent 50%);
       background-attachment: fixed;
     }
-    .glass { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
-    .glass-dark { background: rgba(28, 28, 30, 0.65); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
+    .glass-dark { background: rgba(28, 28, 30, 0.75); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
     .select-glass { appearance: none; background: rgba(255,255,255,0.5); backdrop-filter: blur(10px); border: 1px solid rgba(0,0,0,0.05); outline: none; }
     .dark .select-glass { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -78,7 +79,7 @@
         budget: 'Anggaran', goals: 'Target', bills: 'Tagihan (Bills)', lang: 'Bahasa', dark: 'Mode Gelap', addTx: 'Catat Transaksi', save: 'Simpan', cancel: 'Batal',
         expense: 'Pengeluaran', income: 'Pemasukan', note: 'Catatan', category: 'Kategori', wallet: 'Dompet', edit: 'Edit', delete: 'Hapus',
         manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data', exportCsv: 'Ekspor Riwayat (.CSV)',
-        smartCalc: 'Kalkulator Cerdas', applyPlan: 'Terapkan ke Perencanaan', switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
+        switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
         timelineBar: 'Timeline Periode (Volume Bar)', allTimeAccumulation: 'Akumulasi Total Keseluruhan', pieChartTitle: 'Pie Chart Distribusi',
         resetAll: 'Reset Semua Data', confirmReset: 'Apakah Anda yakin ingin menghapus seluruh data transaksi?',
         month: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] 
@@ -89,7 +90,7 @@
         budget: 'Budget', goals: 'Goals', bills: 'Bills', lang: 'Language', dark: 'Dark Mode', addTx: 'Add Transaction', save: 'Save', cancel: 'Cancel',
         expense: 'Expense', income: 'Income', note: 'Note', category: 'Category', wallet: 'Wallet', edit: 'Edit', delete: 'Delete',
         manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export', exportCsv: 'Export History (.CSV)',
-        smartCalc: 'Smart Calculator', applyPlan: 'Apply to Planning', switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
+        switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
         timelineBar: 'Period Timeline (Volume Bar)', allTimeAccumulation: 'Total All-Time Accumulation', pieChartTitle: 'Pie Chart Distribution',
         resetAll: 'Reset All Data', confirmReset: 'Are you sure you want to delete all transaction data?',
         month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] 
@@ -139,7 +140,6 @@
       const [bills, setBills] = useState([{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }]);
       const [investments, setInvestments] = useState([{ id: 'i1', name: 'Bibit Reksadana', icon: 'trending_up', mockReturnPct: 2.35 }]);
 
-      // Realtime Listener dari Firestore (Mulai dari 0 jika kosong)
       useEffect(() => {
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
@@ -238,7 +238,7 @@
       }, [reportExp, reportBills, reportGoals, reportInvest, lang]);
 
       const glassClass = isDark ? 'glass-dark' : 'glass';
-      useEffect(() => { document.body.className = isDark ? 'bg-[#121212] text-white' : 'bg-[#F5F5F7] bg-mesh text-[#1C1C1E]'; }, [isDark]);
+      useEffect(() => { document.body.className = isDark ? 'bg-[#121212] text-white' : 'bg-[#E5E5EA] bg-mesh text-[#1C1C1E]'; }, [isDark]);
 
       let cumulativePercent = 0;
       const donutData = reportDistribution.map(item => {
@@ -267,20 +267,21 @@
       };
 
       return (
-        <div className="flex justify-center h-screen w-full">
-          <div className="w-full max-w-[428px] h-full relative flex flex-col shadow-2xl overflow-hidden bg-transparent">
+        <div className="flex justify-center items-center min-h-screen w-full p-0 sm:p-4">
+          {/* LAYOUT CONTAINER: Mockup HP responsif di tengah untuk desktop, full screen untuk mobile */}
+          <div className="w-full sm:max-w-[428px] h-screen sm:h-[880px] sm:rounded-[48px] sm:border-[8px] sm:border-[#2C2C2E] relative flex flex-col shadow-2xl overflow-hidden bg-[#F5F5F7] dark:bg-[#1C1C1E]">
             
             {/* HEADER */}
-            <div className="px-6 pt-12 pb-4 flex justify-between items-center z-10">
+            <div className="px-6 pt-12 sm:pt-10 pb-4 flex justify-between items-center z-10 flex-shrink-0">
               <div>
-                <p className="text-[13px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
-                <h1 className="text-[26px] font-extrabold tracking-tight mt-0.5">{activeUser.name}</h1>
+                <p className="text-[12px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
+                <h1 className="text-[24px] font-extrabold tracking-tight mt-0.5">{activeUser.name}</h1>
               </div>
               <button onClick={() => setPendingUser(activeUser.id === 'u1' ? { id: 'u2', name: 'Istri', avatar: '👩🏻' } : { id: 'u1', name: 'Suami', avatar: '👨🏻' })}
-                className={`${glassClass} px-5 py-2.5 rounded-[20px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all`}
+                className={`${glassClass} px-4 py-2 rounded-[18px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all`}
               >
-                <span className="text-xl drop-shadow-sm">{activeUser.avatar}</span>
-                <span className="text-[13px] font-bold text-accent">{t.switch}</span>
+                <span className="text-lg drop-shadow-sm">{activeUser.avatar}</span>
+                <span className="text-[12px] font-bold text-accent">{t.switch}</span>
               </button>
             </div>
 
@@ -290,74 +291,74 @@
               {/* === OVERVIEW === */}
               {view === 'Overview' && (
                 <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
-                  <div className={`${glassClass} rounded-[32px] p-7 relative overflow-hidden`}>
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-accent opacity-10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-                    <p className="text-[11px] uppercase tracking-widest opacity-60 font-bold mb-2">{t.liquid}</p>
-                    <h2 className="text-[40px] font-extrabold tracking-tighter mb-6">{formatRp(totalLiquidBalance)}</h2>
+                  <div className={`${glassClass} rounded-[28px] p-6 relative overflow-hidden`}>
+                    <div className="absolute top-0 right-0 w-36 h-36 bg-accent opacity-10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                    <p className="text-[10px] uppercase tracking-widest opacity-60 font-bold mb-2">{t.liquid}</p>
+                    <h2 className="text-[34px] font-extrabold tracking-tighter mb-5">{formatRp(totalLiquidBalance)}</h2>
                     
-                    <div className="flex gap-4 relative z-10 mb-4 border-b border-black/5 dark:border-white/5 pb-4">
+                    <div className="flex gap-3 relative z-10 mb-4 border-b border-black/5 dark:border-white/5 pb-4">
                       <div className="flex-1">
                         <p className="text-[10px] opacity-50 font-bold uppercase tracking-wider mb-1">{lang==='id'?'Masuk Bulan Ini':'Monthly Income'}</p>
-                        <p className="font-extrabold text-[15px] text-income">{formatRp(overviewInc)}</p>
+                        <p className="font-extrabold text-[14px] text-income">{formatRp(overviewInc)}</p>
                       </div>
                       <div className="flex-1">
                         <p className="text-[10px] opacity-50 font-bold uppercase tracking-wider mb-1">{lang==='id'?'Keluar Bulan Ini':'Monthly Expense'}</p>
-                        <p className="font-extrabold text-[15px] text-expense">{formatRp(overviewExp)}</p>
+                        <p className="font-extrabold text-[14px] text-expense">{formatRp(overviewExp)}</p>
                       </div>
                     </div>
 
-                    <div className="flex gap-4 relative z-10">
-                      <div className="flex-1 bg-black/5 dark:bg-white/5 rounded-2xl p-4 cursor-pointer hover:bg-black/10 transition" onClick={() => {setView('Planning'); setPlanTab('Investasi');}}>
-                        <p className="text-[10px] opacity-60 font-bold uppercase mb-1.5 flex items-center gap-1.5"><span className="material-symbols-rounded text-[16px] text-invest">trending_up</span> {t.invest}</p>
-                        <p className="text-[15px] font-bold text-invest">{formatRp(totalInvestedMarket)}</p>
+                    <div className="flex gap-3 relative z-10">
+                      <div className="flex-1 bg-black/5 dark:bg-white/5 rounded-2xl p-3.5 cursor-pointer hover:bg-black/10 transition" onClick={() => {setView('Planning'); setPlanTab('Investasi');}}>
+                        <p className="text-[10px] opacity-60 font-bold uppercase mb-1 flex items-center gap-1"><span className="material-symbols-rounded text-[14px] text-invest">trending_up</span> {t.invest}</p>
+                        <p className="text-[14px] font-bold text-invest">{formatRp(totalInvestedMarket)}</p>
                       </div>
-                      <div className="flex-1 bg-black/5 dark:bg-white/5 rounded-2xl p-4 cursor-pointer hover:bg-black/10 transition" onClick={() => {setView('Planning'); setPlanTab('Goals');}}>
-                        <p className="text-[10px] opacity-60 font-bold uppercase mb-1.5 flex items-center gap-1.5"><span className="material-symbols-rounded text-[16px] text-accent">shield</span> {t.savings}</p>
-                        <p className="text-[15px] font-bold text-accent">{formatRp(totalGoalsSaved)}</p>
+                      <div className="flex-1 bg-black/5 dark:bg-white/5 rounded-2xl p-3.5 cursor-pointer hover:bg-black/10 transition" onClick={() => {setView('Planning'); setPlanTab('Goals');}}>
+                        <p className="text-[10px] opacity-60 font-bold uppercase mb-1 flex items-center gap-1"><span className="material-symbols-rounded text-[14px] text-accent">shield</span> {t.savings}</p>
+                        <p className="text-[14px] font-bold text-accent">{formatRp(totalGoalsSaved)}</p>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center mb-4 px-1">
-                      <h3 className="text-[17px] font-bold tracking-tight">{t.accounts}</h3>
-                      <button onClick={() => setModal('ManageAccounts')} className="text-accent bg-accent/10 px-3 py-1.5 rounded-[12px] flex items-center gap-1.5 hover:bg-accent/20 transition">
-                        <span className="material-symbols-rounded text-[16px]">edit</span>
-                        <span className="text-[12px] font-bold">{t.edit}</span>
+                    <div className="flex justify-between items-center mb-3 px-1">
+                      <h3 className="text-[16px] font-bold tracking-tight">{t.accounts}</h3>
+                      <button onClick={() => setModal('ManageAccounts')} className="text-accent bg-accent/10 px-3 py-1.5 rounded-[12px] flex items-center gap-1 hover:bg-accent/20 transition">
+                        <span className="material-symbols-rounded text-[14px]">edit</span>
+                        <span className="text-[11px] font-bold">{t.edit}</span>
                       </button>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                       {calculatedAccounts.map(acc => (
-                        <div key={acc.id} className={`${glassClass} min-w-[150px] p-5 rounded-[24px] flex-shrink-0`}>
-                          <div className="flex items-center gap-2.5 mb-3">
-                            <span className="material-symbols-rounded text-accent bg-accent/10 p-1.5 rounded-[10px] text-[18px] shadow-sm">{acc.icon}</span>
-                            <span className="text-[13px] font-bold truncate tracking-tight">{acc.name}</span>
+                        <div key={acc.id} className={`${glassClass} min-w-[140px] p-4 rounded-[20px] flex-shrink-0`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="material-symbols-rounded text-accent bg-accent/10 p-1 rounded-[8px] text-[16px] shadow-sm">{acc.icon}</span>
+                            <span className="text-[12px] font-bold truncate tracking-tight">{acc.name}</span>
                           </div>
-                          <p className="font-extrabold text-[15px]">{formatRp(acc.balance)}</p>
+                          <p className="font-extrabold text-[14px]">{formatRp(acc.balance)}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-[17px] font-bold mb-4 px-1 tracking-tight">{t.recent}</h3>
-                    <div className={`${glassClass} rounded-[28px] p-2`}>
+                    <h3 className="text-[16px] font-bold mb-3 px-1 tracking-tight">{t.recent}</h3>
+                    <div className={`${glassClass} rounded-[24px] p-2`}>
                       {transactions.length === 0 ? (
-                        <p className="text-center opacity-50 py-8 text-[13px] font-semibold">{lang==='id'?'Belum ada aktivitas transaksi.':'No recent activity.'}</p>
+                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada aktivitas transaksi.':'No recent activity.'}</p>
                       ) : (
                         [...transactions].reverse().slice(0, 5).map(tx => {
                           const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
                           return (
-                          <div key={tx.docId || tx.id} className="flex items-center p-4 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[20px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', txs: [tx] })}>
-                            <div className={`w-12 h-12 rounded-[16px] flex items-center justify-center mr-4 shadow-sm
+                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', type: 'Detail Transaksi', txs: [tx] })}>
+                            <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center mr-3 shadow-sm flex-shrink-0
                               ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
-                              <span className="material-symbols-rounded text-[22px]">{tx.icon}</span>
+                              <span className="material-symbols-rounded text-[20px]">{tx.icon}</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-[14px] truncate tracking-tight mb-0.5">{tx.desc || tx.category}</h4>
-                              <p className="text-[11px] opacity-50 truncate tracking-wide">{tx.creator} • {accName}</p>
+                            <div className="flex-1 min-w-0 pr-2">
+                              <h4 className="font-bold text-[13px] truncate tracking-tight mb-0.5">{tx.desc || tx.category}</h4>
+                              <p className="text-[10px] opacity-50 truncate tracking-wide">{tx.creator} • {accName}</p>
                             </div>
-                            <div className={`font-bold text-[15px] pl-3 ${tx.type === 'Income' ? 'text-income' : ''}`}>
+                            <div className={`font-bold text-[14px] whitespace-nowrap ${tx.type === 'Income' ? 'text-income' : ''}`}>
                               {tx.type === 'Income' ? '+' : '-'}{formatRp(tx.amount)}
                             </div>
                           </div>
@@ -370,44 +371,40 @@
 
               {/* === PERENCANAAN === */}
               {view === 'Planning' && (
-                <div className="animate-[fadeIn_0.3s_ease] space-y-6">
+                <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-[28px] font-extrabold tracking-tight">{t.planning}</h2>
-                    <button onClick={() => setModal('AddPlan')} className={`${glassClass} text-accent w-10 h-10 rounded-[14px] flex items-center justify-center hover:scale-110 transition shadow-sm`}>
-                      <span className="material-symbols-rounded text-[22px]">add</span>
+                    <h2 className="text-[24px] font-extrabold tracking-tight">{t.planning}</h2>
+                    <button onClick={() => setModal('AddPlan')} className={`${glassClass} text-accent w-9 h-9 rounded-[12px] flex items-center justify-center hover:scale-110 transition shadow-sm`}>
+                      <span className="material-symbols-rounded text-[20px]">add</span>
                     </button>
                   </div>
                   
-                  <div className="flex bg-black/5 dark:bg-white/5 p-1.5 rounded-[24px]">
+                  <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-[20px]">
                     {['Budget', 'Goals', 'Bills', 'Investasi'].map(tab => (
                       <button key={tab} onClick={() => setPlanTab(tab)}
-                        className={`flex-1 py-3 text-[12px] font-bold rounded-[20px] transition-all tracking-tight ${planTab === tab ? 'bg-white dark:bg-[#2C2C2E] shadow-sm' : 'opacity-60'}`}>
+                        className={`flex-1 py-2.5 text-[11px] font-bold rounded-[16px] transition-all tracking-tight ${planTab === tab ? 'bg-white dark:bg-[#2C2C2E] shadow-sm' : 'opacity-60'}`}>
                         {tab === 'Budget' ? t.budget : tab === 'Goals' ? t.goals : tab === 'Bills' ? t.bills : t.invest}
                       </button>
                     ))}
                   </div>
 
-                  <button onClick={() => setModal('SmartCalc')} className={`${glassClass} w-full py-4 text-[14px] font-extrabold rounded-[24px] transition-all tracking-tight flex items-center justify-center gap-2 text-accent mt-2 mb-2 shadow-sm hover:scale-[1.02]`}>
-                    <span className="material-symbols-rounded text-[22px]">auto_awesome</span> {t.smartCalc}
-                  </button>
-
-                  <div className="space-y-4">
+                  <div className="space-y-3.5">
                     {planTab === 'Budget' && budgets.map(b => {
                       const spent = transactions.filter(tx => tx.date && tx.date.startsWith(currentYm) && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + tx.amount, 0);
                       const pct = Math.min(100, (spent / b.limit) * 100);
                       return (
-                        <div key={b.id} onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })} className={`${glassClass} p-6 rounded-[28px] cursor-pointer hover:scale-[1.02] transition-transform`}>
-                          <div className="flex justify-between items-end mb-4">
+                        <div key={b.id} onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform`}>
+                          <div className="flex justify-between items-end mb-3">
                             <div>
-                              <h4 className="font-bold flex items-center gap-2 tracking-tight"><span className="material-symbols-rounded text-[20px] text-expense">{b.icon}</span> {b.category}</h4>
-                              <p className="text-[12px] opacity-50 mt-1">{lang==='id'?'Anggaran':'Budget'}: {formatRp(b.limit)}</p>
+                              <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-expense">{b.icon}</span> {b.category}</h4>
+                              <p className="text-[11px] opacity-50 mt-1">{lang==='id'?'Anggaran':'Budget'}: {formatRp(b.limit)}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Sisa':'Remaining'}</p>
-                              <p className={`font-extrabold text-[15px] ${b.limit - spent < 0 ? 'text-expense' : ''}`}>{formatRp(b.limit - spent)}</p>
+                              <p className={`font-extrabold text-[14px] ${b.limit - spent < 0 ? 'text-expense' : ''}`}>{formatRp(b.limit - spent)}</p>
                             </div>
                           </div>
-                          <div className="w-full bg-black/5 dark:bg-white/5 h-2.5 rounded-full overflow-hidden">
+                          <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all duration-1000 ${pct > 90 ? 'bg-expense' : 'bg-accent'}`} style={{ width: `${pct}%` }}></div>
                           </div>
                         </div>
@@ -418,18 +415,18 @@
                       const saved = transactions.filter(t => t.type === 'Goal' && t.category === g.name).reduce((sum, t) => sum + t.amount, 0);
                       const pct = Math.min(100, (saved / g.target) * 100);
                       return (
-                        <div key={g.id} onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.category===g.name) })} className={`${glassClass} p-6 rounded-[28px] cursor-pointer hover:scale-[1.02] transition-transform`}>
-                          <div className="flex justify-between items-end mb-4">
+                        <div key={g.id} onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.category===g.name) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform`}>
+                          <div className="flex justify-between items-end mb-3">
                             <div>
-                              <h4 className="font-bold flex items-center gap-2 tracking-tight"><span className="material-symbols-rounded text-[20px] text-accent">{g.icon}</span> {g.name}</h4>
-                              <p className="text-[12px] opacity-50 mt-1">Target: {formatRp(g.target)}</p>
+                              <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-accent">{g.icon}</span> {g.name}</h4>
+                              <p className="text-[11px] opacity-50 mt-1">Target: {formatRp(g.target)}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Terkumpul':'Collected'}</p>
-                              <p className="font-extrabold text-[15px] text-accent">{formatRp(saved)}</p>
+                              <p className="font-extrabold text-[14px] text-accent">{formatRp(saved)}</p>
                             </div>
                           </div>
-                          <div className="w-full bg-black/5 dark:bg-white/5 h-2.5 rounded-full overflow-hidden">
+                          <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-accent transition-all duration-1000" style={{ width: `${pct}%` }}></div>
                           </div>
                         </div>
@@ -440,18 +437,18 @@
                       const paid = transactions.filter(t => t.type === 'Bill' && t.category === bl.name).reduce((sum, t) => sum + t.amount, 0);
                       const isPaid = paid >= bl.amount;
                       return (
-                        <div key={bl.id} onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.category===bl.name) })} className={`${glassClass} p-6 rounded-[28px] cursor-pointer hover:scale-[1.02] transition-transform flex items-center justify-between`}>
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-warning/15 text-warning rounded-[18px] flex items-center justify-center">
-                              <span className="material-symbols-rounded text-[22px]">{bl.icon}</span>
+                        <div key={bl.id} onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.category===bl.name) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform flex items-center justify-between`}>
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-10 h-10 bg-warning/15 text-warning rounded-[16px] flex items-center justify-center flex-shrink-0">
+                              <span className="material-symbols-rounded text-[20px]">{bl.icon}</span>
                             </div>
                             <div>
-                              <h4 className="font-bold text-[15px]">{bl.name}</h4>
-                              <p className="text-[12px] opacity-50 mt-0.5">{lang==='id'?'Nominal Tetap':'Fixed'}: {formatRp(bl.amount)}</p>
+                              <h4 className="font-bold text-[14px]">{bl.name}</h4>
+                              <p className="text-[11px] opacity-50 mt-0.5">{lang==='id'?'Nominal Tetap':'Fixed'}: {formatRp(bl.amount)}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold ${isPaid ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${isPaid ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>
                               {isPaid ? (lang==='id'?'Lunas':'Paid') : (lang==='id'?'Belum':'Unpaid')}
                             </span>
                           </div>
@@ -464,17 +461,17 @@
                       const currentVal = modalAmt * (1 + (inv.mockReturnPct / 100));
                       const profit = currentVal - modalAmt;
                       return (
-                        <div key={inv.id} onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.category===inv.name) })} className={`${glassClass} p-6 rounded-[28px] cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-5`}>
-                          <div className="w-14 h-14 bg-invest/10 text-invest rounded-[18px] flex items-center justify-center shadow-sm">
-                             <span className="material-symbols-rounded text-[24px]">{inv.icon}</span>
+                        <div key={inv.id} onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.category===inv.name) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-4`}>
+                          <div className="w-12 h-12 bg-invest/10 text-invest rounded-[16px] flex items-center justify-center shadow-sm flex-shrink-0">
+                             <span className="material-symbols-rounded text-[22px]">{inv.icon}</span>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-[15px] tracking-tight">{inv.name}</h4>
-                            <p className="text-[12px] opacity-50 mt-1">Modal: {formatRp(modalAmt)}</p>
+                          <div className="flex-1 min-w-0 pr-1">
+                            <h4 className="font-bold text-[14px] tracking-tight truncate">{inv.name}</h4>
+                            <p className="text-[11px] opacity-50 mt-0.5">Modal: {formatRp(modalAmt)}</p>
                           </div>
-                          <div className="text-right">
-                            <div className="font-extrabold text-[15px] text-invest">{formatRp(currentVal)}</div>
-                            <div className="text-[11px] font-bold text-income mt-1">+{formatRp(profit)} ({inv.mockReturnPct}%)</div>
+                          <div className="text-right whitespace-nowrap">
+                            <div className="font-extrabold text-[14px] text-invest">{formatRp(currentVal)}</div>
+                            <div className="text-[10px] font-bold text-income mt-0.5">+{formatRp(profit)} ({inv.mockReturnPct}%)</div>
                           </div>
                         </div>
                       )
@@ -485,21 +482,21 @@
 
               {/* === REPORT DETAIL === */}
               {view === 'Report' && (
-                <div className="animate-[fadeIn_0.3s_ease] space-y-6">
-                  <h2 className="text-[28px] font-extrabold tracking-tight">{t.report}</h2>
+                <div className="animate-[fadeIn_0.3s_ease] space-y-5">
+                  <h2 className="text-[24px] font-extrabold tracking-tight">{t.report}</h2>
                   
-                  <div className={`${glassClass} p-5 rounded-[28px] space-y-4`}>
+                  <div className={`${glassClass} p-5 rounded-[24px] space-y-3.5`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-bold uppercase tracking-widest opacity-60">{t.timelineBar}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t.timelineBar}</span>
                       <input 
                         type="number" 
                         value={reportYear} 
                         onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} 
-                        className="select-glass w-24 px-3 py-1.5 rounded-xl font-bold text-xs text-center outline-none"
+                        className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none"
                       />
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-[14px] font-extrabold text-accent">{t.month[reportMonthIndex]} {reportYear}</span>
+                      <span className="text-[13px] font-extrabold text-accent">{t.month[reportMonthIndex]} {reportYear}</span>
                     </div>
                     <input 
                       type="range" min="0" max="11" step="1" 
@@ -514,8 +511,8 @@
                     </div>
                   </div>
 
-                  <div className={`${glassClass} p-7 rounded-[32px] shadow-sm space-y-4`}>
-                    <h3 className="font-bold text-[15px] tracking-tight text-center mb-4">{t.month[reportMonthIndex]} {reportYear}</h3>
+                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
+                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.month[reportMonthIndex]} {reportYear}</h3>
                     <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
                       <span className="text-xs font-bold opacity-70">{t.income}</span>
                       <span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span>
@@ -538,13 +535,13 @@
                     </div>
                   </div>
 
-                  <div className={`${glassClass} p-7 rounded-[32px] shadow-sm`}>
-                    <h3 className="font-bold mb-6 text-[15px] tracking-tight text-center">{t.pieChartTitle}</h3>
+                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm`}>
+                    <h3 className="font-bold mb-5 text-[14px] tracking-tight text-center">{t.pieChartTitle}</h3>
                     {reportDistribution.length === 0 ? (
-                      <p className="text-center text-[13px] opacity-50 py-6">{lang==='id'?'Data tidak tersedia.':'No data available.'}</p>
+                      <p className="text-center text-[12px] opacity-50 py-5">{lang==='id'?'Data tidak tersedia.':'No data available.'}</p>
                     ) : (
-                      <div className="flex flex-col items-center gap-6">
-                        <svg viewBox="0 0 32 32" className="w-32 h-32 transform -rotate-90 rounded-full drop-shadow-lg">
+                      <div className="flex flex-col items-center gap-5">
+                        <svg viewBox="0 0 32 32" className="w-28 h-28 transform -rotate-90 rounded-full drop-shadow-md">
                           {donutData.map((d, i) => (
                             <circle key={i} r="16" cx="16" cy="16" fill="transparent"
                               stroke={d.color} strokeWidth="6" strokeDasharray={d.strokeDasharray} strokeDashoffset={d.strokeDashoffset}
@@ -552,14 +549,14 @@
                             />
                           ))}
                         </svg>
-                        <div className="w-full space-y-2.5">
+                        <div className="w-full space-y-2">
                           {reportDistribution.map((item, i) => (
-                            <div key={i} className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-3 rounded-2xl">
-                              <div className="flex items-center gap-3">
-                                <div className="w-3.5 h-3.5 rounded-full shadow-md" style={{backgroundColor: item.color}}></div>
-                                <span className="text-[13px] font-bold">{item.name}</span>
+                            <div key={i} className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2.5 rounded-xl">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: item.color}}></div>
+                                <span className="text-[12px] font-bold">{item.name}</span>
                               </div>
-                              <span className="text-[12px] font-extrabold opacity-70">{reportInc > 0 ? Math.round((item.amount/reportInc)*100) : 0}%</span>
+                              <span className="text-[11px] font-extrabold opacity-70">{reportInc > 0 ? Math.round((item.amount/reportInc)*100) : 0}%</span>
                             </div>
                           ))}
                         </div>
@@ -567,8 +564,8 @@
                     )}
                   </div>
 
-                  <div className={`${glassClass} p-7 rounded-[32px] shadow-sm space-y-4`}>
-                    <h3 className="font-bold text-[15px] tracking-tight text-center mb-4">{t.allTimeAccumulation}</h3>
+                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
+                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.allTimeAccumulation}</h3>
                     <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
                       <span className="text-xs font-bold opacity-70">{t.income}</span>
                       <span className="text-sm font-extrabold text-income">{formatRp(totalAllIncome)}</span>
@@ -595,68 +592,68 @@
 
               {/* === SETTINGS === */}
               {view === 'Settings' && (
-                <div className="animate-[fadeIn_0.3s_ease] space-y-6">
-                  <h2 className="text-[28px] font-extrabold tracking-tight">{t.settings}</h2>
+                <div className="animate-[fadeIn_0.3s_ease] space-y-5">
+                  <h2 className="text-[24px] font-extrabold tracking-tight">{t.settings}</h2>
                   
-                  <div className={`${glassClass} rounded-[28px] overflow-hidden shadow-sm`}>
-                    <div className="flex justify-between items-center p-6">
-                      <span className="font-bold text-[15px]">{t.lang}</span>
-                      <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} className="bg-black/5 dark:bg-white/10 px-4 py-2 rounded-xl text-[13px] font-bold transition">
+                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm`}>
+                    <div className="flex justify-between items-center p-5">
+                      <span className="font-bold text-[14px]">{t.lang}</span>
+                      <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} className="bg-black/5 dark:bg-white/10 px-3.5 py-1.5 rounded-xl text-[12px] font-bold transition">
                         {lang.toUpperCase()}
                       </button>
                     </div>
                     <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
-                    <div className="flex justify-between items-center p-6">
-                      <span className="font-bold text-[15px]">{t.dark}</span>
-                      <button onClick={() => setIsDark(!isDark)} className={`w-14 h-8 rounded-full p-1 transition-colors shadow-inner ${isDark ? 'bg-income' : 'bg-black/10'}`}>
-                        <div className={`w-6 h-6 bg-white rounded-full shadow-md transition-transform ${isDark ? 'translate-x-6' : ''}`}></div>
+                    <div className="flex justify-between items-center p-5">
+                      <span className="font-bold text-[14px]">{t.dark}</span>
+                      <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors shadow-inner ${isDark ? 'bg-income' : 'bg-black/10'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${isDark ? 'translate-x-5' : ''}`}></div>
                       </button>
                     </div>
                     <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
-                    <div className="flex justify-between items-center p-6 cursor-pointer hover:bg-black/5 transition" onClick={() => setModal('ManageCategories')}>
-                      <span className="font-bold text-[15px]">{t.manageCat}</span>
-                      <span className="material-symbols-rounded opacity-50">chevron_right</span>
+                    <div className="flex justify-between items-center p-5 cursor-pointer hover:bg-black/5 transition" onClick={() => setModal('ManageCategories')}>
+                      <span className="font-bold text-[14px]">{t.manageCat}</span>
+                      <span className="material-symbols-rounded opacity-50 text-[20px]">chevron_right</span>
                     </div>
                   </div>
 
-                  <div className={`${glassClass} rounded-[28px] overflow-hidden shadow-sm p-3`}>
-                    <h3 className="font-bold text-[12px] opacity-50 uppercase tracking-widest px-4 py-2">{t.exportData}</h3>
-                    <div className="space-y-2">
-                      <button onClick={exportCSV} className="w-full flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-[20px] hover:bg-black/10 transition">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-rounded text-income text-[20px]">csv</span>
-                          <span className="font-bold text-[14px]">{t.exportCsv}</span>
+                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
+                    <h3 className="font-bold text-[11px] opacity-50 uppercase tracking-widest px-3 py-1.5">{t.exportData}</h3>
+                    <div className="space-y-1.5">
+                      <button onClick={exportCSV} className="w-full flex justify-between items-center bg-black/5 dark:bg-white/5 p-3.5 rounded-[16px] hover:bg-black/10 transition">
+                        <div className="flex items-center gap-2.5">
+                          <span className="material-symbols-rounded text-income text-[18px]">csv</span>
+                          <span className="font-bold text-[13px]">{t.exportCsv}</span>
                         </div>
-                        <span className="material-symbols-rounded opacity-50 text-[20px]">download</span>
+                        <span className="material-symbols-rounded opacity-50 text-[18px]">download</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className={`${glassClass} rounded-[28px] overflow-hidden shadow-sm p-3`}>
-                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-4 rounded-[20px] hover:bg-expense/20 transition">
-                      <div className="flex items-center gap-3">
-                        <span className="material-symbols-rounded text-[20px]">delete_forever</span>
-                        <span className="font-bold text-[14px]">{t.resetAll}</span>
+                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
+                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-3.5 rounded-[16px] hover:bg-expense/20 transition">
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-rounded text-[18px]">delete_forever</span>
+                        <span className="font-bold text-[13px]">{t.resetAll}</span>
                       </div>
-                      <span className="material-symbols-rounded opacity-50 text-[20px]">chevron_right</span>
+                      <span className="material-symbols-rounded opacity-50 text-[18px]">chevron_right</span>
                     </button>
                   </div>
                   
-                  <div className="text-center opacity-40 text-[11px] font-bold tracking-widest mt-8">
-                    OURFIN VERSION 18.2 CLOUD SYNC
+                  <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
+                    OURFIN VERSION 18.3 CLOUD SYNC
                   </div>
                 </div>
               )}
             </div>
 
             {/* BOTTOM NAVIGATION */}
-            <div className={`absolute bottom-0 w-full ${glassClass} rounded-t-[40px] pb-8 pt-4 px-6 flex justify-around items-center z-20 border-t border-white/25 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]`}>
+            <div className={`absolute bottom-0 w-full ${glassClass} rounded-t-[36px] pb-7 pt-3.5 px-5 flex justify-around items-center z-20 border-t border-white/25 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]`}>
               <NavBtn icon="space_dashboard" label="Home" active={view==='Overview'} onClick={() => setView('Overview')} />
               <NavBtn icon="pie_chart" label="Report" active={view==='Report'} onClick={() => setView('Report')} />
               
-              <div className="relative -top-8 z-10">
-                <button onClick={() => setModal('Transaction')} className="w-[64px] h-[64px] bg-gradient-to-tr from-accent to-[#5AC8FA] rounded-[22px] flex items-center justify-center text-white shadow-[0_12px_28px_rgba(0,122,255,0.4)] hover:scale-105 active:scale-95 transition-all rotate-45 hover:rotate-90 duration-300">
-                  <span className="material-symbols-rounded text-[30px] font-bold -rotate-45 hover:-rotate-90 duration-300">add</span>
+              <div className="relative -top-7 z-10">
+                <button onClick={() => setModal('Transaction')} className="w-[58px] h-[58px] bg-gradient-to-tr from-accent to-[#5AC8FA] rounded-[20px] flex items-center justify-center text-white shadow-[0_10px_24px_rgba(0,122,255,0.4)] hover:scale-105 active:scale-95 transition-all rotate-45 hover:rotate-90 duration-300">
+                  <span className="material-symbols-rounded text-[26px] font-bold -rotate-45 hover:-rotate-90 duration-300">add</span>
                 </button>
               </div>
 
@@ -667,58 +664,35 @@
             {/* --- MODALS --- */}
 
             {pendingUser && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[320px] rounded-[32px] p-7 shadow-2xl flex flex-col text-center`}>
-                  <div className="w-20 h-20 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-5 text-[40px] shadow-sm">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl flex flex-col text-center`}>
+                  <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-[32px] shadow-sm">
                     {pendingUser.avatar}
                   </div>
-                  <h3 className="text-[20px] font-extrabold tracking-tight mb-2">{t.switchProfile}</h3>
-                  <p className="text-[13px] opacity-70 mb-8 leading-relaxed">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
-                  <div className="flex gap-3">
-                    <button onClick={() => setPendingUser(null)} className="flex-1 py-4 bg-black/5 dark:bg-white/10 rounded-[20px] font-bold text-[14px]">{t.cancel}</button>
-                    <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-4 bg-accent text-white rounded-[20px] font-bold text-[14px] shadow-md">OK</button>
+                  <h3 className="text-[18px] font-extrabold tracking-tight mb-1.5">{t.switchProfile}</h3>
+                  <p className="text-[12px] opacity-70 mb-6 leading-relaxed">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
+                  <div className="flex gap-2.5">
+                    <button onClick={() => setPendingUser(null)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
+                    <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-3 bg-accent text-white rounded-[16px] font-bold text-[13px] shadow-md">OK</button>
                   </div>
                 </div>
               </div>
             )}
 
             {resetConfirm && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[320px] rounded-[32px] p-7 shadow-2xl flex flex-col text-center`}>
-                  <div className="w-20 h-20 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-5 text-[40px] shadow-sm">
-                    <span className="material-symbols-rounded text-[36px]">warning</span>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl flex flex-col text-center`}>
+                  <div className="w-16 h-16 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-4 text-[32px] shadow-sm">
+                    <span className="material-symbols-rounded text-[30px]">warning</span>
                   </div>
-                  <h3 className="text-[20px] font-extrabold tracking-tight mb-2">{t.resetAll}</h3>
-                  <p className="text-[13px] opacity-70 mb-8 leading-relaxed">{t.confirmReset}</p>
-                  <div className="flex gap-3">
-                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-4 bg-black/5 dark:bg-white/10 rounded-[20px] font-bold text-[14px]">{t.cancel}</button>
-                    <button onClick={resetAllDataCloud} className="flex-1 py-4 bg-expense text-white rounded-[20px] font-bold text-[14px] shadow-md">Reset</button>
+                  <h3 className="text-[18px] font-extrabold tracking-tight mb-1.5">{t.resetAll}</h3>
+                  <p className="text-[12px] opacity-70 mb-6 leading-relaxed">{t.confirmReset}</p>
+                  <div className="flex gap-2.5">
+                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
+                    <button onClick={resetAllDataCloud} className="flex-1 py-3 bg-expense text-white rounded-[16px] font-bold text-[13px] shadow-md">Reset</button>
                   </div>
                 </div>
               </div>
-            )}
-
-            {modal === 'SmartCalc' && (
-              <SmartCalcModal 
-                isDark={isDark} t={t}
-                onClose={() => setModal(null)}
-                onApply={(res) => {
-                  setBudgets([
-                    ...budgets.filter(b => b.category !== 'Kebutuhan Pokok'),
-                    { id: 'b_needs_' + Date.now(), category: 'Kebutuhan Pokok', limit: res.needs, icon: 'home' }
-                  ]);
-                  setBills([
-                    ...bills.filter(bl => bl.name !== 'Tagihan Wajib'),
-                    { id: 'bl_bills_' + Date.now(), name: 'Tagihan Wajib', amount: res.billsAmt, icon: 'receipt_long' }
-                  ]);
-                  setGoals([
-                    ...goals.filter(g => g.name !== 'Dana Darurat'),
-                    { id: 'g_save_' + Date.now(), name: 'Dana Darurat', target: res.save, icon: 'shield' }
-                  ]);
-                  setModal(null);
-                  setPlanTab('Budget');
-                }} 
-              />
             )}
 
             {modal === 'ManageAccounts' && (
@@ -751,22 +725,22 @@
             )}
 
             {detailData && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-h-[85%] rounded-[36px] p-7 shadow-2xl flex flex-col`}>
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-[20px] font-extrabold tracking-tight truncate max-w-[70%]">{detailData.title}</h2>
-                    <button onClick={() => setDetailData(null)} className="bg-black/5 dark:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">close</span></button>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
+                  <div className="flex justify-between items-center mb-5">
+                    <h2 className="text-[18px] font-extrabold tracking-tight truncate max-w-[75%]">{detailData.title}</h2>
+                    <button onClick={() => setDetailData(null)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
-                    {detailData.txs.length === 0 && <p className="text-center opacity-50 py-10 text-[13px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No transaction history.'}</p>}
+                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
+                    {detailData.txs.length === 0 && <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No transaction history.'}</p>}
                     {detailData.txs.map(tx => (
-                      <div key={tx.docId || tx.id} className="p-4 bg-black/5 dark:bg-white/5 rounded-[20px] flex justify-between items-center">
-                        <div className="truncate pr-4 flex-1">
-                          <p className="font-bold text-[14px] tracking-tight truncate">{tx.desc || tx.category}</p>
-                          <p className="text-[10px] opacity-50 mt-1 font-semibold">{tx.date} • {tx.creator}</p>
+                      <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
+                        <div className="truncate pr-3 flex-1">
+                          <p className="font-bold text-[13px] tracking-tight truncate">{tx.desc || tx.category}</p>
+                          <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{tx.date} • {tx.creator}</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <p className={`font-extrabold text-[14px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
+                        <div className="flex items-center gap-2.5">
+                          <p className={`font-extrabold text-[13px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
                             {formatRp(tx.amount)}
                           </p>
                           {detailData.type === 'Detail Transaksi' && (
@@ -785,7 +759,7 @@
                       if(detailData.type==='Bill') setBills(bills.filter(bl=>bl.name !== detailData.item.name));
                       if(detailData.type==='Investasi') setInvestments(investments.filter(i=>i.name !== detailData.item.name));
                       setDetailData(null); 
-                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[14px] py-4 rounded-[20px] mt-6 transition hover:bg-expense/20">{t.delete} {detailData.type}</button>
+                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5 transition hover:bg-expense/20">{t.delete} {detailData.type}</button>
                   )}
                 </div>
               </div>
@@ -793,7 +767,7 @@
 
             {modal === 'Transaction' && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[40px] p-7 pb-12 shadow-2xl transition-colors`}>
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl transition-colors`}>
                   <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} onClose={() => setModal(null)} onSave={(tx) => { 
                     addTransactionToCloud({ ...tx, date: `${reportYear}-${String(reportMonthIndex+1).padStart(2,'0')}-15`, creator: activeUser.name, createdAt: Date.now() }); 
                     setModal(null); 
@@ -809,75 +783,11 @@
 
     function NavBtn({ icon, label, active, onClick }) {
       return (
-        <div onClick={onClick} className={`flex flex-col items-center cursor-pointer w-[56px] transition-all duration-300 relative z-10 ${active ? 'text-accent font-bold scale-105' : 'opacity-40 hover:opacity-100'}`}>
-          <span className={`material-symbols-rounded text-[26px] mb-1 ${active ? 'fill-current' : ''}`}>{icon}</span>
-          <span className="text-[9.5px] font-bold tracking-widest">{label}</span>
+        <div onClick={onClick} className={`flex flex-col items-center cursor-pointer w-[50px] transition-all duration-300 relative z-10 ${active ? 'text-accent font-bold scale-105' : 'opacity-40 hover:opacity-100'}`}>
+          <span className={`material-symbols-rounded text-[24px] mb-0.5 ${active ? 'fill-current' : ''}`}>{icon}</span>
+          <span className="text-[9px] font-bold tracking-widest">{label}</span>
         </div>
       );
-    }
-
-    function SmartCalcModal({ isDark, t, onClose, onApply }) {
-      const [income, setIncome] = useState('7000000');
-      const [preset, setPreset] = useState('40/20/20/20');
-
-      let needsPct = 40, billsPct = 20, wantsPct = 20, savePct = 20;
-      if(preset === '50/20/15/15') { needsPct = 50; billsPct = 20; wantsPct = 15; savePct = 15; }
-      if(preset === '30/30/20/20') { needsPct = 30; billsPct = 30; wantsPct = 20; savePct = 20; }
-
-      const amount = parseFloat(income) || 0;
-      const needs = amount * (needsPct / 100);
-      const billsAmt = amount * (billsPct / 100);
-      const wants = amount * (wantsPct / 100);
-      const save = amount * (savePct / 100);
-
-      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[20px] p-4 font-extrabold outline-none transition-all appearance-none text-center text-[28px]`;
-
-      return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[80] flex items-end animate-[fadeIn_0.2s_ease]">
-          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[40px] p-7 pb-12 shadow-2xl`}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[20px] font-extrabold tracking-tight flex items-center gap-2">
-                 <span className="material-symbols-rounded text-accent">auto_awesome</span> {t.smartCalc}
-              </h2>
-              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">close</span></button>
-            </div>
-            
-            <p className="text-center text-[10px] font-bold uppercase tracking-widest opacity-50 mb-2">PEMASUKAN</p>
-            <input type="number" value={income} onChange={e => setIncome(e.target.value)} className={inputClass} />
-            
-            <div className="flex gap-2 overflow-x-auto no-scrollbar py-4">
-              {['40/20/20/20', '50/20/15/15', '30/30/20/20'].map(p => (
-                <button key={p} onClick={() => setPreset(p)} className={`flex-1 py-3 rounded-[16px] text-[12px] font-bold whitespace-nowrap transition-all ${preset === p ? 'bg-accent text-white shadow-md' : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-3 mt-2">
-              <div className="bg-[#FF3B30]/10 p-3.5 rounded-[20px] flex justify-between items-center">
-                <p className="font-bold text-[13px] text-[#FF3B30]">Needs ({needsPct}%)</p>
-                <p className="font-extrabold text-[14px] text-[#FF3B30]">{formatRp(needs)}</p>
-              </div>
-              <div className="bg-[#FF9500]/10 p-3.5 rounded-[20px] flex justify-between items-center">
-                <p className="font-bold text-[13px] text-[#FF9500]">Bills ({billsPct}%)</p>
-                <p className="font-extrabold text-[14px] text-[#FF9500]">{formatRp(billsAmt)}</p>
-              </div>
-              <div className="bg-[#5AC8FA]/10 p-3.5 rounded-[20px] flex justify-between items-center">
-                <p className="font-bold text-[13px] text-[#5AC8FA]">Wants ({wantsPct}%)</p>
-                <p className="font-extrabold text-[14px] text-[#5AC8FA]">{formatRp(wants)}</p>
-              </div>
-              <div className="bg-[#007AFF]/10 p-3.5 rounded-[20px] flex justify-between items-center">
-                <p className="font-bold text-[13px] text-[#007AFF]">Savings ({savePct}%)</p>
-                <p className="font-extrabold text-[14px] text-[#007AFF]">{formatRp(save)}</p>
-              </div>
-            </div>
-
-            <button onClick={() => onApply({ needs, billsAmt, wants, save })} className="w-full bg-accent text-white font-extrabold text-[15px] py-4 rounded-[20px] mt-6 shadow-[0_8px_24px_rgba(0,122,255,0.3)] hover:scale-[1.02] transition-transform">
-              {t.applyPlan}
-            </button>
-          </div>
-        </div>
-      )
     }
 
     function ManageAccountsModal({ isDark, t, accounts, onClose, onSave }) {
@@ -886,29 +796,29 @@
       const addAcc = () => { setLocalAccs([...localAccs, { id: 'a'+Date.now(), name: 'New Wallet', type: 'Bank', owner: 'Shared', icon: 'account_balance' }]); };
 
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
-          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-h-[85%] rounded-[36px] p-7 shadow-2xl flex flex-col`}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[20px] font-extrabold tracking-tight">{t.manageWallet}</h2>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-[18px] font-extrabold tracking-tight">{t.manageWallet}</h2>
               <div className="flex gap-2">
-                <button onClick={addAcc} className="bg-accent/10 text-accent w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">add</span></button>
-                <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">close</span></button>
+                <button onClick={addAcc} className="bg-accent/10 text-accent w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">add</span></button>
+                <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
               {localAccs.map(acc => (
-                <div key={acc.id} className="p-4 bg-black/5 dark:bg-white/5 rounded-[20px] flex items-center gap-4">
-                  <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[12px]">{acc.icon}</span>
+                <div key={acc.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex items-center gap-3">
+                  <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[10px] text-[16px]">{acc.icon}</span>
                   <div className="flex-1">
-                    <input type="text" value={acc.name} onChange={e => updateAccName(acc.id, e.target.value)} className="w-full bg-transparent font-bold text-[15px] outline-none" placeholder="Wallet Name" />
+                    <input type="text" value={acc.name} onChange={e => updateAccName(acc.id, e.target.value)} className="w-full bg-transparent font-bold text-[14px] outline-none" placeholder="Wallet Name" />
                   </div>
                   <button onClick={() => setLocalAccs(localAccs.filter(a => a.id !== acc.id))} className="text-expense opacity-50 hover:opacity-100">
-                    <span className="material-symbols-rounded text-[18px]">delete</span>
+                    <span className="material-symbols-rounded text-[16px]">delete</span>
                   </button>
                 </div>
               ))}
             </div>
-            <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[15px] py-4 rounded-[20px] mt-6 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
+            <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
           </div>
         </div>
       );
@@ -917,16 +827,16 @@
     function AddPlanModal({ isDark, t, planTab, expenseCats, onClose, onSave }) {
       const [name, setName] = useState(planTab === 'Budget' ? expenseCats[0] : '');
       const [val, setVal] = useState('');
-      const inputClass = `w-full ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[20px] p-4 text-[15px] font-bold outline-none appearance-none`;
+      const inputClass = `w-full ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[16px] p-3.5 text-[14px] font-bold outline-none appearance-none`;
 
       return (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end animate-[fadeIn_0.2s_ease]">
-          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[40px] p-7 pb-12 shadow-2xl`}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[20px] font-extrabold tracking-tight">Add {planTab}</h2>
-              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">close</span></button>
+          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-[18px] font-extrabold tracking-tight">Add {planTab}</h2>
+              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {planTab === 'Budget' ? (
                 <select value={name} onChange={e => setName(e.target.value)} className={inputClass}>
                   {expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
@@ -935,7 +845,7 @@
                 <input type="text" placeholder={`Name`} value={name} onChange={e => setName(e.target.value)} className={inputClass} />
               )}
               <input type="number" placeholder={planTab === 'Investasi' ? 'Target Return (%)' : 'Amount (Rp)'} value={val} onChange={e => setVal(e.target.value)} className={inputClass} />
-              <button onClick={() => { if(name && val) onSave({name, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[15px] py-4 rounded-[20px] mt-4 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
+              <button onClick={() => { if(name && val) onSave({name, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-3 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
             </div>
           </div>
         </div>
@@ -955,29 +865,29 @@
       }
 
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
-          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-h-[85%] rounded-[36px] p-7 shadow-2xl flex flex-col`}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[20px] font-extrabold tracking-tight">{t.manageCat}</h2>
-              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">close</span></button>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-[18px] font-extrabold tracking-tight">{t.manageCat}</h2>
+              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-3.5">
               <button onClick={() => setType('Expense')} className={`flex-1 py-2 rounded-[12px] text-xs font-bold ${type==='Expense' ? 'bg-expense text-white' : 'bg-black/5 dark:bg-white/5'}`}>{t.expense}</button>
               <button onClick={() => setType('Income')} className={`flex-1 py-2 rounded-[12px] text-xs font-bold ${type==='Income' ? 'bg-income text-white' : 'bg-black/5 dark:bg-white/5'}`}>{t.income}</button>
             </div>
-            <div className="flex gap-2 mb-4">
-              <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="New category..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[14px] px-4 text-sm font-bold outline-none`} />
-              <button onClick={add} className="bg-accent text-white px-4 py-3 rounded-[14px] font-bold">+</button>
+            <div className="flex gap-2 mb-3.5">
+              <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="New category..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-3.5 text-xs font-bold outline-none`} />
+              <button onClick={add} className="bg-accent text-white px-3.5 py-2.5 rounded-[12px] font-bold text-sm">+</button>
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
               {(type==='Expense'?exp:inc).map((c, i) => (
-                <div key={i} className="p-3 bg-black/5 dark:bg-white/5 rounded-[16px] flex justify-between items-center">
-                  <span className="font-bold text-[14px]">{c}</span>
-                  <button onClick={() => type==='Expense' ? setExp(exp.filter(x=>x!==c)) : setInc(inc.filter(x=>x!==c))} className="text-expense opacity-50 hover:opacity-100"><span className="material-symbols-rounded text-[18px]">delete</span></button>
+                <div key={i} className="p-3 bg-black/5 dark:bg-white/5 rounded-[14px] flex justify-between items-center">
+                  <span className="font-bold text-[13px]">{c}</span>
+                  <button onClick={() => type==='Expense' ? setExp(exp.filter(x=>x!==c)) : setInc(inc.filter(x=>x!==c))} className="text-expense opacity-50 hover:opacity-100"><span className="material-symbols-rounded text-[16px]">delete</span></button>
                 </div>
               ))}
             </div>
-            <button onClick={() => onSave(inc, exp)} className="w-full bg-accent text-white font-extrabold text-[15px] py-4 rounded-[20px] mt-6">{t.save}</button>
+            <button onClick={() => onSave(inc, exp)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5">{t.save}</button>
           </div>
         </div>
       );
@@ -1008,36 +918,36 @@
         onSave({ type, amount: parseFloat(amount), accountId, category, desc, icon });
       };
 
-      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[20px] p-4 text-[14px] font-bold outline-none transition-all appearance-none`;
+      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none transition-all appearance-none`;
 
       return (
-        <div className="space-y-5">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-[22px] font-extrabold tracking-tight">{t.addTx}</h2>
-            <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-9 h-9 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">close</span></button>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center mb-1">
+            <h2 className="text-[20px] font-extrabold tracking-tight">{t.addTx}</h2>
+            <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
           </div>
           
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {[ { id: 'Expense', label: t.expense, color: 'bg-expense' }, { id: 'Income', label: t.income, color: 'bg-income' }, { id: 'Goal', label: 'Goal', color: 'bg-accent' }, { id: 'Bill', label: 'Bills', color: 'bg-warning' }, { id: 'Investasi', label: 'Invest', color: 'bg-invest' }].map(tb => (
-              <button key={tb.id} onClick={() => setType(tb.id)} className={`px-3 py-2.5 rounded-[14px] text-[11px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
+              <button key={tb.id} onClick={() => setType(tb.id)} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
                 {tb.label}
               </button>
             ))}
           </div>
 
           <div className="relative">
-            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-extrabold text-[22px] opacity-40">Rp</span>
-            <input type="number" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} className={`${inputClass} pl-14 text-[26px] py-6 font-extrabold`} />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-extrabold text-[20px] opacity-40">Rp</span>
+            <input type="number" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} className={`${inputClass} pl-12 text-[24px] py-4 font-extrabold`} />
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1.5 block tracking-widest">{t.wallet}</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.wallet}</label>
               <select value={accountId} onChange={e => setAccountId(e.target.value)} className={inputClass}>{accounts.map(a => <option key={a.id} value={a.id} className="text-black">{a.name}</option>)}</select>
             </div>
             
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1.5 block tracking-widest">{t.category}</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.category}</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className={inputClass}>
                 {type === 'Expense' && expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 {type === 'Income' && incomeCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
@@ -1049,11 +959,11 @@
           </div>
 
           <div>
-            <label className="text-[9px] font-bold uppercase opacity-50 mb-1.5 block tracking-widest">{t.note}</label>
+            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.note}</label>
             <input type="text" placeholder="..." value={desc} onChange={e => setDesc(e.target.value)} className={inputClass} />
           </div>
 
-          <button onClick={submit} className="w-full bg-accent text-white font-extrabold text-[16px] py-4 rounded-[20px] mt-2 shadow-[0_10px_30px_rgba(0,122,255,0.3)] hover:scale-[1.02] transition-transform">
+          <button onClick={submit} className="w-full bg-accent text-white font-extrabold text-[15px] py-3.5 rounded-[16px] mt-1 shadow-[0_10px_24px_rgba(0,122,255,0.3)] hover:scale-[1.02] transition-transform">
             {t.save}
           </button>
         </div>
