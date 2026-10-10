@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Cloud Sync 18.0</title>
+  <title>OURFIN - Cloud Sync 18.1</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -97,7 +97,13 @@
     function App() {
       const [isDark, setIsDark] = useState(false);
       const [lang, setLang] = useState('id');
-      const [activeUser, setActiveUser] = useState({ id: 'u1', name: 'Suami', avatar: '👨🏻' });
+      
+      // Simpan status profil aktif ke localStorage perangkat masing-masing agar tidak reset saat refresh
+      const [activeUser, setActiveUser] = useState(() => {
+        const saved = localStorage.getItem('ourfin_active_user');
+        return saved ? JSON.parse(saved) : { id: 'u1', name: 'Suami', avatar: '👨🏻' };
+      });
+
       const [pendingUser, setPendingUser] = useState(null);
       const [view, setView] = useState('Overview');
       const [planTab, setPlanTab] = useState('Budget');
@@ -141,7 +147,6 @@
               const txs = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
               if (txs.length > 0) setTransactions(txs);
               else {
-                // Default initial seed if empty
                 setTransactions([
                   { id: 1, type: 'Income', amount: 7000000, category: 'Gaji', accountId: 'a1', date: `${currentYm}-01`, desc: 'Gaji Bulanan', creator: 'Suami', icon: 'payments' },
                   { id: 2, type: 'Expense', amount: 1000000, category: 'Kebutuhan Pokok', accountId: 'a2', date: `${currentYm}-05`, desc: 'Belanja Dapur', creator: 'Istri', icon: 'shopping_cart' },
@@ -159,6 +164,13 @@
         } else {
           setTransactions([...transactions, newTx]);
         }
+      };
+
+      // Simpan profil aktif ke localStorage setiap kali diganti
+      const handleSwitchUser = (newUser) => {
+        setActiveUser(newUser);
+        localStorage.setItem('ourfin_active_user', JSON.stringify(newUser));
+        setPendingUser(null);
       };
 
       // --- FINANCIAL ENGINE ---
@@ -602,7 +614,7 @@
                   </div>
                   
                   <div className="text-center opacity-40 text-[11px] font-bold tracking-widest mt-8">
-                    OURFIN VERSION 18.0 CLOUD SYNC
+                    OURFIN VERSION 18.1 CLOUD SYNC
                   </div>
                 </div>
               )}
@@ -635,7 +647,7 @@
                   <p className="text-[13px] opacity-70 mb-8 leading-relaxed">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
                   <div className="flex gap-3">
                     <button onClick={() => setPendingUser(null)} className="flex-1 py-4 bg-black/5 dark:bg-white/10 rounded-[20px] font-bold text-[14px]">{t.cancel}</button>
-                    <button onClick={() => { setActiveUser(pendingUser); setPendingUser(null); }} className="flex-1 py-4 bg-accent text-white rounded-[20px] font-bold text-[14px] shadow-md">OK</button>
+                    <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-4 bg-accent text-white rounded-[20px] font-bold text-[14px] shadow-md">OK</button>
                   </div>
                 </div>
               </div>
