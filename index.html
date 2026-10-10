@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Cloud Sync 18.1</title>
+  <title>OURFIN - Cloud Sync 18.2</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,7 +12,7 @@
   <!-- Firebase App & Firestore SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     
     const firebaseConfig = {
       apiKey: "AIzaSyCBk_eKf3ZTSxjHJP19NraaAYPDrwK9Gw",
@@ -27,7 +27,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     window.db = db;
-    window.FirestoreModule = { collection, onSnapshot, addDoc, deleteDoc, doc, setDoc };
+    window.FirestoreModule = { collection, onSnapshot, addDoc, deleteDoc, doc, getDocs };
   </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -80,6 +80,7 @@
         manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data', exportCsv: 'Ekspor Riwayat (.CSV)',
         smartCalc: 'Kalkulator Cerdas', applyPlan: 'Terapkan ke Perencanaan', switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
         timelineBar: 'Timeline Periode (Volume Bar)', allTimeAccumulation: 'Akumulasi Total Keseluruhan', pieChartTitle: 'Pie Chart Distribusi',
+        resetAll: 'Reset Semua Data', confirmReset: 'Apakah Anda yakin ingin menghapus seluruh data transaksi?',
         month: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] 
       },
       en: { 
@@ -90,6 +91,7 @@
         manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export', exportCsv: 'Export History (.CSV)',
         smartCalc: 'Smart Calculator', applyPlan: 'Apply to Planning', switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
         timelineBar: 'Period Timeline (Volume Bar)', allTimeAccumulation: 'Total All-Time Accumulation', pieChartTitle: 'Pie Chart Distribution',
+        resetAll: 'Reset All Data', confirmReset: 'Are you sure you want to delete all transaction data?',
         month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] 
       }
     };
@@ -98,13 +100,13 @@
       const [isDark, setIsDark] = useState(false);
       const [lang, setLang] = useState('id');
       
-      // Simpan status profil aktif ke localStorage perangkat masing-masing agar tidak reset saat refresh
       const [activeUser, setActiveUser] = useState(() => {
         const saved = localStorage.getItem('ourfin_active_user');
         return saved ? JSON.parse(saved) : { id: 'u1', name: 'Suami', avatar: '👨🏻' };
       });
 
       const [pendingUser, setPendingUser] = useState(null);
+      const [resetConfirm, setResetConfirm] = useState(false);
       const [view, setView] = useState('Overview');
       const [planTab, setPlanTab] = useState('Budget');
       const [modal, setModal] = useState(null); 
@@ -122,10 +124,10 @@
 
       // --- DATABASE STATE (FIREBASE REAL-TIME SYNC) ---
       const [accounts, setAccounts] = useState([
-        { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance', initial: 1000000 },
-        { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance', initial: 500000 },
-        { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet', initial: 200000 },
-        { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments', initial: 150000 }
+        { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance' },
+        { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance' },
+        { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet' },
+        { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments' }
       ]);
 
       const [incomeCats, setIncomeCats] = useState(['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya']);
@@ -137,7 +139,7 @@
       const [bills, setBills] = useState([{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }]);
       const [investments, setInvestments] = useState([{ id: 'i1', name: 'Bibit Reksadana', icon: 'trending_up', mockReturnPct: 2.35 }]);
 
-      // Realtime Listener dari Firestore
+      // Realtime Listener dari Firestore (Mulai dari 0 jika kosong)
       useEffect(() => {
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
@@ -145,13 +147,7 @@
             const { collection, onSnapshot } = window.FirestoreModule;
             onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
               const txs = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
-              if (txs.length > 0) setTransactions(txs);
-              else {
-                setTransactions([
-                  { id: 1, type: 'Income', amount: 7000000, category: 'Gaji', accountId: 'a1', date: `${currentYm}-01`, desc: 'Gaji Bulanan', creator: 'Suami', icon: 'payments' },
-                  { id: 2, type: 'Expense', amount: 1000000, category: 'Kebutuhan Pokok', accountId: 'a2', date: `${currentYm}-05`, desc: 'Belanja Dapur', creator: 'Istri', icon: 'shopping_cart' },
-                ]);
-              }
+              setTransactions(txs);
             });
           }
         }, 300);
@@ -166,7 +162,26 @@
         }
       };
 
-      // Simpan profil aktif ke localStorage setiap kali diganti
+      const deleteTransactionFromCloud = async (docId) => {
+        if (window.db && window.FirestoreModule) {
+          const { doc, deleteDoc } = window.FirestoreModule;
+          await deleteDoc(doc(window.db, 'transactions', docId));
+        } else {
+          setTransactions(transactions.filter(tx => tx.docId !== docId));
+        }
+      };
+
+      const resetAllDataCloud = async () => {
+        if (window.db && window.FirestoreModule) {
+          const { collection, getDocs, doc, deleteDoc } = window.FirestoreModule;
+          const querySnapshot = await getDocs(collection(window.db, 'transactions'));
+          const deletes = querySnapshot.docs.map(d => deleteDoc(doc(window.db, 'transactions', d.id)));
+          await Promise.all(deletes);
+        }
+        setTransactions([]);
+        setResetConfirm(false);
+      };
+
       const handleSwitchUser = (newUser) => {
         setActiveUser(newUser);
         localStorage.setItem('ourfin_active_user', JSON.stringify(newUser));
@@ -176,7 +191,7 @@
       // --- FINANCIAL ENGINE ---
       const calculatedAccounts = useMemo(() => {
         return accounts.map(acc => {
-          let balance = acc.initial;
+          let balance = 0;
           transactions.forEach(tx => {
             if (tx.accountId === acc.id) {
               if (tx.type === 'Income') balance += tx.amount;
@@ -327,23 +342,27 @@
                   <div>
                     <h3 className="text-[17px] font-bold mb-4 px-1 tracking-tight">{t.recent}</h3>
                     <div className={`${glassClass} rounded-[28px] p-2`}>
-                      {[...transactions].reverse().slice(0, 5).map(tx => {
-                        const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
-                        return (
-                        <div key={tx.docId || tx.id} className="flex items-center p-4 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[20px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', txs: [tx] })}>
-                          <div className={`w-12 h-12 rounded-[16px] flex items-center justify-center mr-4 shadow-sm
-                            ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
-                            <span className="material-symbols-rounded text-[22px]">{tx.icon}</span>
+                      {transactions.length === 0 ? (
+                        <p className="text-center opacity-50 py-8 text-[13px] font-semibold">{lang==='id'?'Belum ada aktivitas transaksi.':'No recent activity.'}</p>
+                      ) : (
+                        [...transactions].reverse().slice(0, 5).map(tx => {
+                          const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
+                          return (
+                          <div key={tx.docId || tx.id} className="flex items-center p-4 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[20px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', txs: [tx] })}>
+                            <div className={`w-12 h-12 rounded-[16px] flex items-center justify-center mr-4 shadow-sm
+                              ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
+                              <span className="material-symbols-rounded text-[22px]">{tx.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-[14px] truncate tracking-tight mb-0.5">{tx.desc || tx.category}</h4>
+                              <p className="text-[11px] opacity-50 truncate tracking-wide">{tx.creator} • {accName}</p>
+                            </div>
+                            <div className={`font-bold text-[15px] pl-3 ${tx.type === 'Income' ? 'text-income' : ''}`}>
+                              {tx.type === 'Income' ? '+' : '-'}{formatRp(tx.amount)}
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-[14px] truncate tracking-tight mb-0.5">{tx.desc || tx.category}</h4>
-                            <p className="text-[11px] opacity-50 truncate tracking-wide">{tx.creator} • {accName}</p>
-                          </div>
-                          <div className={`font-bold text-[15px] pl-3 ${tx.type === 'Income' ? 'text-income' : ''}`}>
-                            {tx.type === 'Income' ? '+' : '-'}{formatRp(tx.amount)}
-                          </div>
-                        </div>
-                      )})}
+                        )})
+                      )}
                     </div>
                   </div>
                 </div>
@@ -612,9 +631,19 @@
                       </button>
                     </div>
                   </div>
+
+                  <div className={`${glassClass} rounded-[28px] overflow-hidden shadow-sm p-3`}>
+                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-4 rounded-[20px] hover:bg-expense/20 transition">
+                      <div className="flex items-center gap-3">
+                        <span className="material-symbols-rounded text-[20px]">delete_forever</span>
+                        <span className="font-bold text-[14px]">{t.resetAll}</span>
+                      </div>
+                      <span className="material-symbols-rounded opacity-50 text-[20px]">chevron_right</span>
+                    </button>
+                  </div>
                   
                   <div className="text-center opacity-40 text-[11px] font-bold tracking-widest mt-8">
-                    OURFIN VERSION 18.1 CLOUD SYNC
+                    OURFIN VERSION 18.2 CLOUD SYNC
                   </div>
                 </div>
               )}
@@ -648,6 +677,22 @@
                   <div className="flex gap-3">
                     <button onClick={() => setPendingUser(null)} className="flex-1 py-4 bg-black/5 dark:bg-white/10 rounded-[20px] font-bold text-[14px]">{t.cancel}</button>
                     <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-4 bg-accent text-white rounded-[20px] font-bold text-[14px] shadow-md">OK</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {resetConfirm && (
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[320px] rounded-[32px] p-7 shadow-2xl flex flex-col text-center`}>
+                  <div className="w-20 h-20 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-5 text-[40px] shadow-sm">
+                    <span className="material-symbols-rounded text-[36px]">warning</span>
+                  </div>
+                  <h3 className="text-[20px] font-extrabold tracking-tight mb-2">{t.resetAll}</h3>
+                  <p className="text-[13px] opacity-70 mb-8 leading-relaxed">{t.confirmReset}</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-4 bg-black/5 dark:bg-white/10 rounded-[20px] font-bold text-[14px]">{t.cancel}</button>
+                    <button onClick={resetAllDataCloud} className="flex-1 py-4 bg-expense text-white rounded-[20px] font-bold text-[14px] shadow-md">Reset</button>
                   </div>
                 </div>
               </div>
@@ -716,13 +761,20 @@
                     {detailData.txs.length === 0 && <p className="text-center opacity-50 py-10 text-[13px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No transaction history.'}</p>}
                     {detailData.txs.map(tx => (
                       <div key={tx.docId || tx.id} className="p-4 bg-black/5 dark:bg-white/5 rounded-[20px] flex justify-between items-center">
-                        <div className="truncate pr-4">
-                          <p className="font-bold text-[14px] tracking-tight truncate">{tx.desc}</p>
+                        <div className="truncate pr-4 flex-1">
+                          <p className="font-bold text-[14px] tracking-tight truncate">{tx.desc || tx.category}</p>
                           <p className="text-[10px] opacity-50 mt-1 font-semibold">{tx.date} • {tx.creator}</p>
                         </div>
-                        <p className={`font-extrabold text-[14px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
-                          {formatRp(tx.amount)}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <p className={`font-extrabold text-[14px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
+                            {formatRp(tx.amount)}
+                          </p>
+                          {detailData.type === 'Detail Transaksi' && (
+                            <button onClick={() => { deleteTransactionFromCloud(tx.docId); setDetailData(null); }} className="text-expense bg-expense/10 p-2 rounded-xl hover:bg-expense/20 transition">
+                              <span className="material-symbols-rounded text-[16px]">delete</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -743,7 +795,7 @@
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[40px] p-7 pb-12 shadow-2xl transition-colors`}>
                   <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} onClose={() => setModal(null)} onSave={(tx) => { 
-                    addTransactionToCloud({ ...tx, date: currentYm + '-15', creator: activeUser.name, createdAt: Date.now() }); 
+                    addTransactionToCloud({ ...tx, date: `${reportYear}-${String(reportMonthIndex+1).padStart(2,'0')}-15`, creator: activeUser.name, createdAt: Date.now() }); 
                     setModal(null); 
                   }} />
                 </div>
@@ -830,8 +882,8 @@
 
     function ManageAccountsModal({ isDark, t, accounts, onClose, onSave }) {
       const [localAccs, setLocalAccs] = useState([...accounts]);
-      const updateAcc = (id, field, val) => { setLocalAccs(localAccs.map(a => a.id === id ? { ...a, [field]: val } : a)); };
-      const addAcc = () => { setLocalAccs([...localAccs, { id: 'a'+Date.now(), name: 'New Wallet', type: 'Bank', owner: 'Shared', icon: 'account_balance', initial: 0 }]); };
+      const updateAccName = (id, val) => { setLocalAccs(localAccs.map(a => a.id === id ? { ...a, name: val } : a)); };
+      const addAcc = () => { setLocalAccs([...localAccs, { id: 'a'+Date.now(), name: 'New Wallet', type: 'Bank', owner: 'Shared', icon: 'account_balance' }]); };
 
       return (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-5 animate-[fadeIn_0.2s_ease]">
@@ -848,9 +900,11 @@
                 <div key={acc.id} className="p-4 bg-black/5 dark:bg-white/5 rounded-[20px] flex items-center gap-4">
                   <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[12px]">{acc.icon}</span>
                   <div className="flex-1">
-                    <input type="text" value={acc.name} onChange={e => updateAcc(acc.id, 'name', e.target.value)} className="w-full bg-transparent font-bold text-[15px] outline-none mb-1" />
-                    <input type="number" value={acc.initial} onChange={e => updateAcc(acc.id, 'initial', parseFloat(e.target.value)||0)} className="w-full bg-transparent text-[12px] opacity-60 outline-none font-bold" placeholder="Initial Balance" />
+                    <input type="text" value={acc.name} onChange={e => updateAccName(acc.id, e.target.value)} className="w-full bg-transparent font-bold text-[15px] outline-none" placeholder="Wallet Name" />
                   </div>
+                  <button onClick={() => setLocalAccs(localAccs.filter(a => a.id !== acc.id))} className="text-expense opacity-50 hover:opacity-100">
+                    <span className="material-symbols-rounded text-[18px]">delete</span>
+                  </button>
                 </div>
               ))}
             </div>
@@ -932,7 +986,7 @@
     function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, onClose, onSave }) {
       const [type, setType] = useState('Expense');
       const [amount, setAmount] = useState('');
-      const [accountId, setAccountId] = useState(accounts[0].id);
+      const [accountId, setAccountId] = useState(accounts[0]?.id || '');
       const [category, setCategory] = useState(expenseCats[0] || 'Lainnya');
       const [desc, setDesc] = useState('');
 
