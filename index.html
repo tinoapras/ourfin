@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Full Cloud Sync & Notification 19.2</title>
+  <title>OURFIN - Final 21.0</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -47,8 +47,7 @@
     }
   </script>
   <style>
-    body { margin: 0; background-color: #E5E5EA; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
-    .dark body { background-color: #000000; }
+    body { margin: 0; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
     .bg-mesh {
       background-image: 
         radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.12) 0px, transparent 50%),
@@ -63,13 +62,13 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body class="bg-mesh text-[#1C1C1E] dark:text-[#F2F2F7] transition-colors">
+<body class="bg-[#E5E5EA] bg-mesh text-[#1C1C1E] dark:bg-[#121212] dark:text-[#F2F2F7]">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useMemo, useEffect, useRef } = React;
 
-    const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+    const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
     const formatNumberInput = (val) => {
       if (!val) return '';
       const cleanNum = val.toString().replace(/\D/g, '');
@@ -79,18 +78,13 @@
     const timeAgo = (timestamp, lang) => {
       if (!timestamp) return lang === 'id' ? 'Baru saja' : 'Just now';
       const seconds = Math.floor((Date.now() - timestamp) / 1000);
-      
-      if (seconds < 60) return lang === 'id' ? (seconds <= 5 ? 'Baru saja' : `${seconds} detik lalu`) : (seconds <= 5 ? 'Just now' : `${seconds}s ago`);
+      if (seconds < 60) return lang === 'id' ? 'Baru saja' : 'Just now';
       const minutes = Math.floor(seconds / 60);
       if (minutes < 60) return lang === 'id' ? `${minutes} menit lalu` : `${minutes}m ago`;
       const hours = Math.floor(minutes / 60);
       if (hours < 24) return lang === 'id' ? `${hours} jam lalu` : `${hours}h ago`;
       const days = Math.floor(hours / 24);
-      if (days < 30) return lang === 'id' ? `${days} hari lalu` : `${days}d ago`;
-      const months = Math.floor(days / 30);
-      if (months < 12) return lang === 'id' ? `${months} bulan lalu` : `${months}mo ago`;
-      const years = Math.floor(days / 365);
-      return lang === 'id' ? `${years} tahun lalu` : `${years}y ago`;
+      return lang === 'id' ? `${days} hari lalu` : `${days}d ago`;
     };
 
     const formatDetailedDateTime = (timestamp) => {
@@ -106,17 +100,15 @@
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.15, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.4);
-      } catch (e) {
-        console.log('Audio not allowed yet');
-      }
+      } catch (e) {}
     };
 
     const COLORS = ['#34C759', '#FF3B30', '#FF9500', '#007AFF', '#AF52DE', '#5AC8FA']; 
@@ -127,30 +119,52 @@
         liquid: 'Total Saldo Likuid', invest: 'Investasi', savings: 'Tabungan', accounts: 'Rekening & Dompet', recent: 'Aktivitas Terakhir', 
         budget: 'Anggaran', goals: 'Target', bills: 'Tagihan (Bills)', lang: 'Bahasa', dark: 'Mode Gelap', addTx: 'Catat Transaksi', save: 'Simpan', cancel: 'Batal',
         expense: 'Pengeluaran', income: 'Pemasukan', note: 'Catatan', category: 'Kategori', wallet: 'Dompet', edit: 'Edit', delete: 'Hapus',
-        manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data', exportCsv: 'Ekspor Riwayat (.CSV)',
+        manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data',
         switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
-        timelineBar: 'Timeline Periode (Volume Bar)', allTimeAccumulation: 'Akumulasi Total Keseluruhan', pieChartTitle: 'Pie Chart Distribusi',
-        resetAll: 'Reset Semua Data', confirmReset: 'Apakah Anda yakin ingin menghapus seluruh data transaksi?',
-        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', notifPermission: 'Aktifkan Notifikasi HP',
-        month: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] 
+        resetAll: 'Reset Total Database', confirmReset: 'PERINGATAN! Ini akan menghapus SEMUA transaksi dan mereset dompet, kategori, serta anggaran kembali ke bawaan pabrik. Lanjutkan?',
+        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', totalBudget: 'Total Anggaran', totalBills: 'Total Tagihan', 
+        netEstimate: 'Estimasi Bersih', cycleIn: 'Masuk Siklus', cycleOut: 'Keluar Siklus', remaining: 'Sisa', collected: 'Terkumpul',
+        paid: 'Lunas', unpaid: 'Belum', detailTx: 'Detail Transaksi', noHistory: 'Belum ada riwayat transaksi.',
+        aiScanBtn: 'Scan Nota AI', aiApiKeyLabel: 'Gemini API Key (Untuk Scan Nota)'
       },
       en: { 
         welcome: 'Welcome', switch: 'Switch', overview: 'Overview', planning: 'Planning', report: 'Reports', settings: 'Settings', 
         liquid: 'Total Liquid Balance', invest: 'Investments', savings: 'Savings', accounts: 'Accounts & Wallets', recent: 'Recent Activity', 
         budget: 'Budget', goals: 'Goals', bills: 'Bills', lang: 'Language', dark: 'Dark Mode', addTx: 'Add Transaction', save: 'Save', cancel: 'Cancel',
         expense: 'Expense', income: 'Income', note: 'Note', category: 'Category', wallet: 'Wallet', edit: 'Edit', delete: 'Delete',
-        manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export', exportCsv: 'Export History (.CSV)',
+        manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export',
         switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
-        timelineBar: 'Period Timeline (Volume Bar)', allTimeAccumulation: 'Total All-Time Accumulation', pieChartTitle: 'Pie Chart Distribution',
-        resetAll: 'Reset All Data', confirmReset: 'Are you sure you want to delete all transaction data?',
-        more: 'More', allActivity: 'All Activity Details', notifPermission: 'Enable Phone Notifications',
-        month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] 
+        resetAll: 'Full Database Reset', confirmReset: 'WARNING! This will delete ALL transactions and reset wallets, categories, and plans to factory defaults. Continue?',
+        more: 'More', allActivity: 'All Activity Details', totalBudget: 'Total Budget', totalBills: 'Total Bills', 
+        netEstimate: 'Net Estimate', cycleIn: 'Cycle In', cycleOut: 'Cycle Out', remaining: 'Remaining', collected: 'Collected',
+        paid: 'Paid', unpaid: 'Unpaid', detailTx: 'Transaction Detail', noHistory: 'No transaction history.',
+        aiScanBtn: 'AI Receipt Scan', aiApiKeyLabel: 'Gemini API Key (For Receipt Scan)'
       }
     };
+
+    const MONTH_NAMES = {
+      id: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    };
+
+    // Default States (Bawaan Pabrik untuk fungsi Reset)
+    const DEFAULT_ACCOUNTS = [
+      { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance' },
+      { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance' },
+      { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet' },
+      { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments' }
+    ];
+    const DEFAULT_INCOME_CATS = ['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya'];
+    const DEFAULT_EXPENSE_CATS = ['Groceries', 'Kebutuhan Pokok', 'Keinginan', 'Transport', 'Bayi & Anak', 'Listrik & Air'];
+    const DEFAULT_BUDGETS = [{ id: 'b1', category: 'Kebutuhan Pokok', limit: 3500000, icon: 'home' }];
+    const DEFAULT_GOALS = [{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }];
+    const DEFAULT_BILLS = [{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }];
+    const DEFAULT_INVESTMENTS = [{ id: 'i1', name: 'Bibit Pasar Uang', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 }];
 
     function App() {
       const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark') === 'true');
       const [lang, setLang] = useState(() => localStorage.getItem('ourfin_lang') || 'id');
+      const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('ourfin_gemini_key') || '');
       
       const [activeUser, setActiveUser] = useState(() => {
         const saved = localStorage.getItem('ourfin_active_user');
@@ -169,15 +183,14 @@
 
       const prevTxCountRef = useRef(null);
 
-      const requestNotifPermission = () => {
-        if ('Notification' in window) {
-          Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-              alert('Notifikasi berhasil diaktifkan di perangkat ini!');
-            }
-          });
-        }
-      };
+      useEffect(() => {
+        localStorage.setItem('ourfin_dark', isDark);
+        if (isDark) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      }, [isDark]);
+
+      useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
+      useEffect(() => { localStorage.setItem('ourfin_gemini_key', geminiApiKey); }, [geminiApiKey]);
 
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -188,10 +201,7 @@
       let cycleMonth = currentMonthIndex;
       if (currentDateNum < 10) {
         cycleMonth -= 1;
-        if (cycleMonth < 0) {
-          cycleMonth = 11;
-          cycleYear -= 1;
-        }
+        if (cycleMonth < 0) { cycleMonth = 11; cycleYear -= 1; }
       }
       const currentCyclePrefix = `${cycleYear}-${String(cycleMonth + 1).padStart(2, '0')}`;
 
@@ -199,46 +209,33 @@
       const [reportYear, setReportYear] = useState(currentYear);
       const reportYm = `${reportYear}-${String(reportMonthIndex + 1).padStart(2, '0')}`;
 
-      // --- FULL CLOUD FIREBASE STATES ---
-      const [accounts, setAccounts] = useState([]);
-      const [incomeCats, setIncomeCats] = useState([]);
-      const [expenseCats, setExpenseCats] = useState([]);
-      const [budgets, setBudgets] = useState([]);
-      const [goals, setGoals] = useState([]);
-      const [bills, setBills] = useState([]);
-      const [investments, setInvestments] = useState([]);
+      const [accounts, setAccounts] = useState(DEFAULT_ACCOUNTS);
+      const [incomeCats, setIncomeCats] = useState(DEFAULT_INCOME_CATS);
+      const [expenseCats, setExpenseCats] = useState(DEFAULT_EXPENSE_CATS);
+      const [budgets, setBudgets] = useState(DEFAULT_BUDGETS);
+      const [goals, setGoals] = useState(DEFAULT_GOALS);
+      const [bills, setBills] = useState(DEFAULT_BILLS);
+      const [investments, setInvestments] = useState(DEFAULT_INVESTMENTS);
       const [transactions, setTransactions] = useState([]);
 
-      useEffect(() => { localStorage.setItem('ourfin_dark', isDark); }, [isDark]);
-      useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
-
-      // --- REAL-TIME FIRESTORE SYNCHRONIZATION & PUSH NOTIFICATION ---
       useEffect(() => {
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
             clearInterval(interval);
             const { collection, onSnapshot, doc, setDoc } = window.FirestoreModule;
 
+            // 1. Sync Transactions
             onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
               const txs = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
-              
-              // Cek jika ada transaksi baru masuk dari perangkat lain
               if (prevTxCountRef.current !== null && txs.length > prevTxCountRef.current) {
                 const latest = [...txs].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
-                if (latest && latest.creator !== activeUser.name) {
-                  playNotificationSound();
-                  if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`OURFIN: Transaksi Baru dari ${latest.creator}`, {
-                      body: `${latest.desc || latest.category}: ${formatRp(latest.amount)}`,
-                      icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
-                    });
-                  }
-                }
+                if (latest && latest.creator !== activeUser.name) playNotificationSound();
               }
               prevTxCountRef.current = txs.length;
               setTransactions(txs);
             });
 
+            // 2. Sync Settings
             const setupSettingsSync = async (docName, defaultData, setStateFunc) => {
               const ref = doc(window.db, 'settings', docName);
               onSnapshot(ref, async (docSnap) => {
@@ -251,23 +248,13 @@
               });
             };
 
-            setupSettingsSync('accounts', [
-              { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance' },
-              { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance' },
-              { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet' },
-              { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments' }
-            ], setAccounts);
-
-            setupSettingsSync('incomeCats', ['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya'], setIncomeCats);
-            setupSettingsSync('expenseCats', ['Groceries', 'Kebutuhan Pokok', 'Keinginan', 'Transport', 'Bayi & Anak', 'Listrik & Air'], setExpenseCats);
-            setupSettingsSync('budgets', [{ id: 'b1', category: 'Kebutuhan Pokok', limit: 3500000, icon: 'home' }], setBudgets);
-            setupSettingsSync('goals', [{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }], setGoals);
-            setupSettingsSync('bills', [{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }], setBills);
-            setupSettingsSync('investments', [
-              { id: 'i1', name: 'Bibit Pasar Uang (Sucorinvest)', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 },
-              { id: 'i2', name: 'Saham BBCA (Bluechip)', type: 'Saham', icon: 'show_chart', mockReturnPct: 12.4 },
-              { id: 'i3', name: 'SBN ORI026 (Obligasi Negara)', type: 'Obligasi', icon: 'verified', mockReturnPct: 6.3 }
-            ], setInvestments);
+            setupSettingsSync('accounts', DEFAULT_ACCOUNTS, setAccounts);
+            setupSettingsSync('incomeCats', DEFAULT_INCOME_CATS, setIncomeCats);
+            setupSettingsSync('expenseCats', DEFAULT_EXPENSE_CATS, setExpenseCats);
+            setupSettingsSync('budgets', DEFAULT_BUDGETS, setBudgets);
+            setupSettingsSync('goals', DEFAULT_GOALS, setGoals);
+            setupSettingsSync('bills', DEFAULT_BILLS, setBills);
+            setupSettingsSync('investments', DEFAULT_INVESTMENTS, setInvestments);
           }
         }, 300);
       }, [activeUser.name]);
@@ -283,8 +270,6 @@
         if (window.db && window.FirestoreModule) {
           const { collection, addDoc } = window.FirestoreModule;
           await addDoc(collection(window.db, 'transactions'), newTx);
-        } else {
-          setTransactions([...transactions, newTx]);
         }
       };
 
@@ -292,36 +277,42 @@
         if (window.db && window.FirestoreModule) {
           const { doc, deleteDoc } = window.FirestoreModule;
           await deleteDoc(doc(window.db, 'transactions', docId));
-        } else {
-          setTransactions(transactions.filter(tx => tx.docId !== docId));
         }
       };
 
+      // FULL RESET DATABASE (Transactions + Settings)
       const resetAllDataCloud = async () => {
         if (window.db && window.FirestoreModule) {
-          const { collection, getDocs, doc, deleteDoc } = window.FirestoreModule;
+          const { collection, getDocs, doc, deleteDoc, setDoc } = window.FirestoreModule;
+          
+          // Hapus semua transaksi
           const querySnapshot = await getDocs(collection(window.db, 'transactions'));
           const deletes = querySnapshot.docs.map(d => deleteDoc(doc(window.db, 'transactions', d.id)));
           await Promise.all(deletes);
+
+          // Timpa ulang (reset) semua pengaturan ke bawaan pabrik
+          await setDoc(doc(window.db, 'settings', 'accounts'), { items: DEFAULT_ACCOUNTS });
+          await setDoc(doc(window.db, 'settings', 'incomeCats'), { items: DEFAULT_INCOME_CATS });
+          await setDoc(doc(window.db, 'settings', 'expenseCats'), { items: DEFAULT_EXPENSE_CATS });
+          await setDoc(doc(window.db, 'settings', 'budgets'), { items: DEFAULT_BUDGETS });
+          await setDoc(doc(window.db, 'settings', 'goals'), { items: DEFAULT_GOALS });
+          await setDoc(doc(window.db, 'settings', 'bills'), { items: DEFAULT_BILLS });
+          await setDoc(doc(window.db, 'settings', 'investments'), { items: DEFAULT_INVESTMENTS });
         }
+        
         setTransactions([]);
         setResetConfirm(false);
+        alert(lang === 'id' ? 'Seluruh database berhasil direset ke pengaturan awal!' : 'Database successfully reset to default settings!');
       };
 
-      const handleSwitchUser = (newUser) => {
-        setActiveUser(newUser);
-        localStorage.setItem('ourfin_active_user', JSON.stringify(newUser));
-        setPendingUser(null);
-      };
-
-      // --- FINANCIAL ENGINE ---
+      // Kalkulasi Saldo
       const calculatedAccounts = useMemo(() => {
         return accounts.map(acc => {
           let balance = 0;
           transactions.forEach(tx => {
             if (tx.accountId === acc.id) {
-              if (tx.type === 'Income') balance += tx.amount;
-              if (['Expense', 'Goal', 'Investasi', 'Bill'].includes(tx.type)) balance -= tx.amount;
+              if (tx.type === 'Income') balance += Number(tx.amount);
+              if (['Expense', 'Goal', 'Investasi', 'Bill'].includes(tx.type)) balance -= Number(tx.amount);
             }
           });
           return { ...acc, balance };
@@ -331,88 +322,43 @@
       const totalLiquidBalance = calculatedAccounts.reduce((sum, acc) => sum + acc.balance, 0);
       
       const totalInvestedMarket = investments.reduce((sum, inv) => {
-        const modalAmt = transactions.filter(t => t.type === 'Investasi' && t.category === inv.name).reduce((s, t) => s + t.amount, 0);
-        return sum + (modalAmt * (1 + (inv.mockReturnPct / 100)));
+        const modalAmt = transactions.filter(t => t.type === 'Investasi' && t.investmentId === inv.id).reduce((s, t) => s + Number(t.amount), 0);
+        return sum + (modalAmt * (1 + (Number(inv.mockReturnPct) / 100)));
       }, 0);
 
-      const totalGoalsSaved = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
+      const totalGoalsSaved = goals.reduce((sum, g) => {
+        return sum + transactions.filter(t => t.type === 'Goal' && t.goalId === g.id).reduce((s, t) => s + Number(t.amount), 0);
+      }, 0);
 
-      const totalBudgetLimit = budgets.reduce((sum, b) => sum + (b.limit || 0), 0);
-      const totalBillsAmount = bills.reduce((sum, bl) => sum + (bl.amount || 0), 0);
+      const totalBudgetLimit = budgets.reduce((sum, b) => sum + (Number(b.limit) || 0), 0);
+      const totalBillsAmount = bills.reduce((sum, bl) => sum + (Number(bl.amount) || 0), 0);
       const estimatedTotal = totalLiquidBalance - totalBudgetLimit - totalBillsAmount;
 
       const overviewTx = transactions.filter(tx => tx.date && tx.date.startsWith(currentCyclePrefix));
-      const overviewInc = overviewTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
-      const overviewExp = overviewTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
+      const overviewInc = overviewTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + Number(t.amount), 0);
+      const overviewExp = overviewTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Number(t.amount), 0);
 
       const reportTx = transactions.filter(tx => tx.date && tx.date.startsWith(reportYm));
-      const reportInc = reportTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
-      const reportExp = reportTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
-      const reportGoals = reportTx.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
-      const reportInvest = reportTx.filter(t => t.type === 'Investasi').reduce((sum, t) => sum + t.amount, 0);
-      const reportBills = reportTx.filter(t => t.type === 'Bill').reduce((sum, t) => sum + t.amount, 0);
-
-      const totalAllIncome = transactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
-      const totalAllExpense = transactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
-      const totalAllGoals = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
-      const totalAllInvest = transactions.filter(t => t.type === 'Investasi').reduce((sum, t) => sum + t.amount, 0);
-      const totalAllBills = transactions.filter(t => t.type === 'Bill').reduce((sum, t) => sum + t.amount, 0);
-
-      const reportDistribution = useMemo(() => {
-        return [
-          { name: lang==='id'?'Pengeluaran':'Expense', amount: reportExp, color: COLORS[1] },
-          { name: lang==='id'?'Tagihan':'Bills', amount: reportBills, color: COLORS[4] },
-          { name: lang==='id'?'Tabungan':'Savings', amount: reportGoals, color: COLORS[2] },
-          { name: lang==='id'?'Investasi':'Invest', amount: reportInvest, color: COLORS[3] },
-        ].filter(item => item.amount > 0);
-      }, [reportExp, reportBills, reportGoals, reportInvest, lang]);
+      const reportInc = reportTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + Number(t.amount), 0);
+      const reportExp = reportTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + Number(t.amount), 0);
+      const reportGoals = reportTx.filter(t => t.type === 'Goal').reduce((sum, t) => sum + Number(t.amount), 0);
+      const reportInvest = reportTx.filter(t => t.type === 'Investasi').reduce((sum, t) => sum + Number(t.amount), 0);
+      const reportBills = reportTx.filter(t => t.type === 'Bill').reduce((sum, t) => sum + Number(t.amount), 0);
 
       const glassClass = isDark ? 'glass-dark' : 'glass';
-      useEffect(() => { document.body.className = isDark ? 'bg-[#121212] text-white' : 'bg-[#E5E5EA] bg-mesh text-[#1C1C1E]'; }, [isDark]);
-
-      let cumulativePercent = 0;
-      const donutData = reportDistribution.map(item => {
-        const percent = reportInc > 0 ? (item.amount / reportInc) * 100 : 0;
-        const strokeDasharray = `${percent} 100`;
-        const strokeDashoffset = -cumulativePercent;
-        cumulativePercent += percent;
-        return { ...item, strokeDasharray, strokeDashoffset };
-      });
-
-      const exportCSV = () => {
-        if(transactions.length === 0) return alert('No data available.');
-        const headers = ['ID', 'Type', 'Category', 'Description', 'Amount', 'Date', 'Wallet', 'Creator'];
-        const rows = transactions.map(tx => {
-          const accName = accounts.find(a => a.id === tx.accountId)?.name || '-';
-          return [tx.id, tx.type, tx.category, `"${tx.desc}"`, tx.amount, tx.date, `"${accName}"`, tx.creator].join(',');
-        });
-        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `OURFIN_History_${reportYm}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
 
       return (
         <div className="flex justify-center items-center min-h-screen w-full p-0 sm:p-4">
           <div className="w-full sm:max-w-[428px] h-screen sm:h-[880px] sm:rounded-[48px] sm:border-[8px] sm:border-[#2C2C2E] relative flex flex-col shadow-2xl overflow-hidden bg-[#F5F5F7] dark:bg-[#1C1C1E]">
             
-            {/* AREA KONTEN */}
             <div className="flex-1 overflow-y-auto px-6 pt-12 pb-36 no-scrollbar flex flex-col justify-start">
               
-              {/* HEADER */}
               <div className="pb-5 flex justify-between items-center z-10 flex-shrink-0">
                 <div>
                   <p className="text-[12px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
                   <h1 className="text-[24px] font-extrabold tracking-tight mt-0.5">{activeUser.name}</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={requestNotifPermission} className={`${glassClass} w-9 h-9 rounded-[16px] flex items-center justify-center text-accent shadow-sm hover:scale-105`} title="Aktifkan Notifikasi">
-                    <span className="material-symbols-rounded text-[18px]">notifications_active</span>
-                  </button>
                   <button onClick={() => setPendingUser(activeUser.id === 'u1' ? { id: 'u2', name: 'Istri', avatar: '👩🏻' } : { id: 'u1', name: 'Suami', avatar: '👨🏻' })}
                     className={`${glassClass} px-3.5 py-2 rounded-[18px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all`}
                   >
@@ -422,7 +368,6 @@
                 </div>
               </div>
 
-              {/* === OVERVIEW === */}
               {view === 'Overview' && (
                 <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
                   <div className={`${glassClass} rounded-[28px] p-6 relative overflow-hidden space-y-3`}>
@@ -435,27 +380,27 @@
 
                     <div className="flex flex-col gap-1 pt-1 border-t border-black/5 dark:border-white/5 text-[11px] font-semibold opacity-75">
                       <div className="flex justify-between">
-                        <span>Total Anggaran:</span>
+                        <span>{t.totalBudget}:</span>
                         <span className="font-bold">{formatRp(totalBudgetLimit)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Total Bills (Tagihan):</span>
+                        <span>{t.totalBills}:</span>
                         <span className="font-bold">{formatRp(totalBillsAmount)}</span>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
-                      <span className="text-[10px] uppercase tracking-wider font-bold opacity-60">Estimasi Bersih:</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold opacity-60">{t.netEstimate}:</span>
                       <span className={`text-[13px] font-extrabold ${estimatedTotal < 0 ? 'text-expense' : 'text-accent'}`}>{formatRp(estimatedTotal)}</span>
                     </div>
                     
                     <div className="flex gap-3 pt-2 border-t border-black/5 dark:border-white/5">
                       <div className="flex-1">
-                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{lang==='id'?'Masuk Siklus':'Cycle In'}</p>
+                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{t.cycleIn}</p>
                         <p className="font-extrabold text-[13px] text-income">{formatRp(overviewInc)}</p>
                       </div>
                       <div className="flex-1">
-                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{lang==='id'?'Keluar Siklus':'Cycle Out'}</p>
+                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{t.cycleOut}</p>
                         <p className="font-extrabold text-[13px] text-expense">{formatRp(overviewExp)}</p>
                       </div>
                     </div>
@@ -502,12 +447,10 @@
                     </div>
                     <div className={`${glassClass} rounded-[24px] p-2`}>
                       {transactions.length === 0 ? (
-                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada aktivitas transaksi.':'No recent activity.'}</p>
+                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{t.noHistory}</p>
                       ) : (
-                        [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(tx => {
-                          const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
-                          return (
-                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', type: 'Detail Transaksi', txs: [tx] })}>
+                        [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(tx => (
+                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: t.detailTx, type: 'Detail Transaksi', txs: [tx] })}>
                             <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center mr-3 shadow-sm flex-shrink-0
                               ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
                               <span className="material-symbols-rounded text-[20px]">{tx.icon}</span>
@@ -520,14 +463,13 @@
                               {tx.type === 'Income' ? '+' : '-'}{formatRp(tx.amount)}
                             </div>
                           </div>
-                        )})
+                        ))
                       )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* === PERENCANAAN === */}
               {view === 'Planning' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <div className="flex justify-between items-center">
@@ -548,17 +490,17 @@
 
                   <div className="space-y-3.5">
                     {planTab === 'Budget' && budgets.map(b => {
-                      const spent = transactions.filter(tx => tx.date && tx.date >= `${currentCyclePrefix}-10` && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + tx.amount, 0);
+                      const spent = transactions.filter(tx => tx.date && tx.date >= `${currentCyclePrefix}-10` && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + Number(tx.amount), 0);
                       const pct = Math.min(100, (spent / b.limit) * 100);
                       return (
                         <div key={b.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
                           <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })}>
                             <div>
                               <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-expense">{b.icon}</span> {b.category}</h4>
-                              <p className="text-[11px] opacity-50 mt-1">Budget (10-10): {formatRp(b.limit)}</p>
+                              <p className="text-[11px] opacity-50 mt-1">{t.budget} (10-10): {formatRp(b.limit)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Sisa':'Remaining'}</p>
+                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{t.remaining}</p>
                               <p className={`font-extrabold text-[14px] ${b.limit - spent < 0 ? 'text-expense' : ''}`}>{formatRp(b.limit - spent)}</p>
                             </div>
                           </div>
@@ -566,58 +508,58 @@
                             <div className={`h-full rounded-full transition-all duration-1000 ${pct > 90 ? 'bg-expense' : 'bg-accent'}`} style={{ width: `${pct}%` }}></div>
                           </div>
                           <button onClick={() => setTxPrefill({ type: 'Expense', category: b.category, amount: '', desc: `${b.category}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
-                            <span className="material-symbols-rounded text-sm">add_circle</span> Bayar / Catat Pengeluaran
+                            <span className="material-symbols-rounded text-sm">add_circle</span> {lang==='id'?'Catat Pengeluaran':'Record Expense'}
                           </button>
                         </div>
                       )
                     })}
 
                     {planTab === 'Goals' && goals.map(g => {
-                      const saved = transactions.filter(t => t.type === 'Goal' && t.category === g.name).reduce((sum, t) => sum + t.amount, 0);
+                      const saved = transactions.filter(t => t.type === 'Goal' && t.goalId === g.id).reduce((sum, t) => sum + Number(t.amount), 0);
                       const pct = Math.min(100, (saved / g.target) * 100);
                       return (
                         <div key={g.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
-                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.category===g.name) })}>
+                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.goalId === g.id) })}>
                             <div>
                               <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-accent">{g.icon}</span> {g.name}</h4>
                               <p className="text-[11px] opacity-50 mt-1">Target: {formatRp(g.target)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Terkumpul':'Collected'}</p>
+                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{t.collected}</p>
                               <p className="font-extrabold text-[14px] text-accent">{formatRp(saved)}</p>
                             </div>
                           </div>
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-accent transition-all duration-1000" style={{ width: `${pct}%` }}></div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, amount: '', desc: `Setor Target ${g.name}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
-                            <span className="material-symbols-rounded text-sm">savings</span> Bayar / Tabung Target
+                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, goalId: g.id, amount: '', desc: `Setor Target ${g.name}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
+                            <span className="material-symbols-rounded text-sm">savings</span> {lang==='id'?'Tabung Target':'Save to Goal'}
                           </button>
                         </div>
                       )
                     })}
 
                     {planTab === 'Bills' && bills.map(bl => {
-                      const paidTx = transactions.find(t => t.type === 'Bill' && t.category === bl.name && t.date >= `${currentCyclePrefix}-10`);
+                      const paidTx = transactions.find(t => t.type === 'Bill' && t.billId === bl.id && t.date >= `${currentCyclePrefix}-10`);
                       const isPaid = !!paidTx;
                       return (
                         <div key={bl.id} className={`${glassClass} p-5 rounded-[24px] flex items-center justify-between`}>
-                          <div className="flex items-center gap-3.5 cursor-pointer flex-1" onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.category===bl.name) })}>
+                          <div className="flex items-center gap-3.5 cursor-pointer flex-1" onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.billId === bl.id) })}>
                             <div className="w-10 h-10 bg-warning/15 text-warning rounded-[16px] flex items-center justify-center flex-shrink-0">
                               <span className="material-symbols-rounded text-[20px]">{bl.icon}</span>
                             </div>
                             <div>
-                              <h4 className="font-bold text-[14px]">{bl.name} <span className="text-[10px] opacity-50">({t.month[currentMonthIndex]} {currentYear})</span></h4>
+                              <h4 className="font-bold text-[14px]">{bl.name} <span className="text-[10px] opacity-50">({MONTH_NAMES[lang][currentMonthIndex]} {currentYear})</span></h4>
                               <p className="text-[11px] opacity-50 mt-0.5">{formatRp(bl.amount)}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${isPaid ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>
-                              {isPaid ? (lang==='id'?'Lunas':'Paid') : (lang==='id'?'Belum':'Unpaid')}
+                              {isPaid ? t.paid : t.unpaid}
                             </span>
                             {!isPaid && (
-                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
-                                Bayar
+                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, billId: bl.id, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
+                                {lang==='id'?'Bayar':'Pay'}
                               </button>
                             )}
                           </div>
@@ -626,18 +568,18 @@
                     })}
 
                     {planTab === 'Investasi' && investments.map(inv => {
-                      const modalAmt = transactions.filter(t => t.type === 'Investasi' && t.category === inv.name).reduce((sum, t) => sum + t.amount, 0);
-                      const currentVal = modalAmt * (1 + (inv.mockReturnPct / 100));
+                      const modalAmt = transactions.filter(t => t.type === 'Investasi' && t.investmentId === inv.id).reduce((sum, t) => sum + Number(t.amount), 0);
+                      const currentVal = modalAmt * (1 + (Number(inv.mockReturnPct) / 100));
                       const profit = currentVal - modalAmt;
                       return (
                         <div key={inv.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
-                          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.category===inv.name) })}>
+                          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.investmentId === inv.id) })}>
                             <div className="w-12 h-12 bg-invest/10 text-invest rounded-[16px] flex items-center justify-center shadow-sm flex-shrink-0">
                                <span className="material-symbols-rounded text-[22px]">{inv.icon}</span>
                             </div>
                             <div className="flex-1 min-w-0 pr-1">
                               <h4 className="font-bold text-[14px] tracking-tight truncate">{inv.name}</h4>
-                              <p className="text-[10px] text-invest font-bold uppercase tracking-wider">{inv.type} • Est. +{inv.mockReturnPct}%</p>
+                              <p className="text-[10px] text-invest font-bold uppercase tracking-wider">{inv.type || 'Reksa Dana'} • Est. +{inv.mockReturnPct}%</p>
                               <p className="text-[11px] opacity-50 mt-0.5">Modal: {formatRp(modalAmt)}</p>
                             </div>
                             <div className="text-right whitespace-nowrap">
@@ -645,8 +587,8 @@
                               <div className="text-[10px] font-bold text-income mt-0.5">+{formatRp(profit)}</div>
                             </div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, amount: '', desc: `Top-up ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
-                            <span className="material-symbols-rounded text-sm">trending_up</span> Bayar / Top-up Portofolio
+                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, investmentId: inv.id, amount: '', desc: `Top-up ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
+                            <span className="material-symbols-rounded text-sm">trending_up</span> {lang==='id'?'Top-up Portofolio':'Top-up Portfolio'}
                           </button>
                         </div>
                       )
@@ -655,117 +597,32 @@
                 </div>
               )}
 
-              {/* === REPORT DETAIL === */}
               {view === 'Report' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <h2 className="text-[24px] font-extrabold tracking-tight">{t.report}</h2>
                   
                   <div className={`${glassClass} p-5 rounded-[24px] space-y-3.5`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t.timelineBar}</span>
-                      <input 
-                        type="number" 
-                        value={reportYear} 
-                        onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} 
-                        className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none"
-                      />
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-65">Timeline</span>
+                      <input type="number" value={reportYear} onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-[13px] font-extrabold text-accent">{t.month[reportMonthIndex]} {reportYear}</span>
+                      <span className="text-[13px] font-extrabold text-accent">{MONTH_NAMES[lang][reportMonthIndex]} {reportYear}</span>
                     </div>
-                    <input 
-                      type="range" min="0" max="11" step="1" 
-                      value={reportMonthIndex} 
-                      onChange={(e) => setReportMonthIndex(Number(e.target.value))}
-                      className="w-full accent-accent cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
-                    />
-                    <div className="flex justify-between text-[10px] font-bold opacity-40">
-                      <span>Jan</span>
-                      <span>Jun</span>
-                      <span>Dec</span>
-                    </div>
+                    <input type="range" min="0" max="11" step="1" value={reportMonthIndex} onChange={(e) => setReportMonthIndex(Number(e.target.value))} className="w-full accent-accent cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none" />
                   </div>
 
                   <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
-                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.month[reportMonthIndex]} {reportYear}</h3>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.income}</span>
-                      <span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.expense}</span>
-                      <span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.bills}</span>
-                      <span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.savings} (Goals)</span>
-                      <span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.invest}</span>
-                      <span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span>
-                    </div>
-                  </div>
-
-                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm`}>
-                    <h3 className="font-bold mb-5 text-[14px] tracking-tight text-center">{t.pieChartTitle}</h3>
-                    {reportDistribution.length === 0 ? (
-                      <p className="text-center text-[12px] opacity-50 py-5">{lang==='id'?'Data tidak tersedia.':'No data available.'}</p>
-                    ) : (
-                      <div className="flex flex-col items-center gap-5">
-                        <svg viewBox="0 0 32 32" className="w-28 h-28 transform -rotate-90 rounded-full drop-shadow-md">
-                          {donutData.map((d, i) => (
-                            <circle key={i} r="16" cx="16" cy="16" fill="transparent"
-                              stroke={d.color} strokeWidth="6" strokeDasharray={d.strokeDasharray} strokeDashoffset={d.strokeDashoffset}
-                              className="transition-all duration-1000"
-                            />
-                          ))}
-                        </svg>
-                        <div className="w-full space-y-2">
-                          {reportDistribution.map((item, i) => (
-                            <div key={i} className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2.5 rounded-xl">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: item.color}}></div>
-                                <span className="text-[12px] font-bold">{item.name}</span>
-                              </div>
-                              <span className="text-[11px] font-extrabold opacity-70">{reportInc > 0 ? Math.round((item.amount/reportInc)*100) : 0}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
-                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.allTimeAccumulation}</h3>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.income}</span>
-                      <span className="text-sm font-extrabold text-income">{formatRp(totalAllIncome)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.expense}</span>
-                      <span className="text-sm font-extrabold text-expense">{formatRp(totalAllExpense)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.bills}</span>
-                      <span className="text-sm font-extrabold text-warning">{formatRp(totalAllBills)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.savings} (Goals)</span>
-                      <span className="text-sm font-extrabold text-accent">{formatRp(totalAllGoals)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
-                      <span className="text-xs font-bold opacity-70">{t.invest}</span>
-                      <span className="text-sm font-extrabold text-invest">{formatRp(totalAllInvest)}</span>
-                    </div>
+                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{MONTH_NAMES[lang][reportMonthIndex]} {reportYear}</h3>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.income}</span><span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.expense}</span><span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.bills}</span><span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.savings}</span><span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.invest}</span><span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span></div>
                   </div>
                 </div>
               )}
 
-              {/* === SETTINGS === */}
               {view === 'Settings' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <h2 className="text-[24px] font-extrabold tracking-tight">{t.settings}</h2>
@@ -773,55 +630,35 @@
                   <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm`}>
                     <div className="flex justify-between items-center p-5">
                       <span className="font-bold text-[14px]">{t.lang}</span>
-                      <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} className="bg-black/5 dark:bg-white/10 px-3.5 py-1.5 rounded-xl text-[12px] font-bold transition">
-                        {lang.toUpperCase()}
-                      </button>
+                      <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} className="bg-black/5 dark:bg-white/10 px-3.5 py-1.5 rounded-xl text-[12px] font-bold">{lang.toUpperCase()}</button>
                     </div>
                     <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
                     <div className="flex justify-between items-center p-5">
                       <span className="font-bold text-[14px]">{t.dark}</span>
-                      <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors shadow-inner ${isDark ? 'bg-income' : 'bg-black/10'}`}>
+                      <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors ${isDark ? 'bg-income' : 'bg-black/10'}`}>
                         <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${isDark ? 'translate-x-5' : ''}`}></div>
                       </button>
                     </div>
                     <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
-                    <div className="flex justify-between items-center p-5 cursor-pointer hover:bg-black/5 transition" onClick={() => setModal('ManageCategories')}>
-                      <span className="font-bold text-[14px]">{t.manageCat}</span>
-                      <span className="material-symbols-rounded opacity-50 text-[20px]">chevron_right</span>
-                    </div>
-                  </div>
-
-                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
-                    <h3 className="font-bold text-[11px] opacity-50 uppercase tracking-widest px-3 py-1.5">{t.exportData}</h3>
-                    <div className="space-y-1.5">
-                      <button onClick={exportCSV} className="w-full flex justify-between items-center bg-black/5 dark:bg-white/5 p-3.5 rounded-[16px] hover:bg-black/10 transition">
-                        <div className="flex items-center gap-2.5">
-                          <span className="material-symbols-rounded text-income text-[18px]">csv</span>
-                          <span className="font-bold text-[13px]">{t.exportCsv}</span>
-                        </div>
-                        <span className="material-symbols-rounded opacity-50 text-[18px]">download</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
-                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-3.5 rounded-[16px] hover:bg-expense/20 transition">
-                      <div className="flex items-center gap-2.5">
-                        <span className="material-symbols-rounded text-[18px]">delete_forever</span>
-                        <span className="font-bold text-[13px]">{t.resetAll}</span>
-                      </div>
-                      <span className="material-symbols-rounded opacity-50 text-[18px]">chevron_right</span>
+                    <button onClick={() => setModal('ManageCategories')} className="w-full text-left p-5 font-bold text-[14px] hover:bg-black/5 dark:hover:bg-white/5 transition flex justify-between items-center">
+                      {t.manageCat} <span className="material-symbols-rounded text-[18px]">chevron_right</span>
                     </button>
                   </div>
-                  
-                  <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
-                    OURFIN VERSION 19.2 FULL CLOUD SYNC & NOTIF
+
+                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-4 space-y-2`}>
+                    <label className="text-[11px] font-bold uppercase opacity-60 tracking-wider block">{t.aiApiKeyLabel}</label>
+                    <input type="password" placeholder="AIzaSy..." value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} className={`w-full ${isDark?'bg-black/30':'bg-white'} border border-black/10 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none`} />
+                  </div>
+
+                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
+                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-3.5 rounded-[16px]">
+                      <div className="flex items-center gap-2.5"><span className="material-symbols-rounded text-[18px]">warning</span><span className="font-bold text-[13px]">{t.resetAll}</span></div>
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* BOTTOM NAVIGATION (FIXED FLOATING RESPONSIF HP) */}
             <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-[390px] ${glassClass} rounded-[28px] py-3.5 px-6 flex justify-around items-center z-30 border border-white/40 shadow-[0_15px_35px_rgba(0,0,0,0.15)]`}>
               <NavBtn icon="space_dashboard" label="Home" active={view==='Overview'} onClick={() => setView('Overview')} />
               <NavBtn icon="pie_chart" label="Report" active={view==='Report'} onClick={() => setView('Report')} />
@@ -836,188 +673,126 @@
               <NavBtn icon="settings" label="Settings" active={view==='Settings'} onClick={() => setView('Settings')} />
             </div>
 
-            {/* --- MODALS --- */}
-
             {pendingUser && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl flex flex-col text-center`}>
-                  <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-[32px] shadow-sm">
-                    {pendingUser.avatar}
-                  </div>
-                  <h3 className="text-[18px] font-extrabold tracking-tight mb-1.5">{t.switchProfile}</h3>
-                  <p className="text-[12px] opacity-70 mb-6 leading-relaxed">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center`}>
+                  <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-[32px]">{pendingUser.avatar}</div>
+                  <h3 className="text-[18px] font-extrabold mb-1.5">{t.switchProfile}</h3>
+                  <p className="text-[12px] opacity-70 mb-6">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
                   <div className="flex gap-2.5">
                     <button onClick={() => setPendingUser(null)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
-                    <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-3 bg-accent text-white rounded-[16px] font-bold text-[13px] shadow-md">OK</button>
+                    <button onClick={() => { setActiveUser(pendingUser); localStorage.setItem('ourfin_active_user', JSON.stringify(pendingUser)); setPendingUser(null); }} className="flex-1 py-3 bg-accent text-white rounded-[16px] font-bold text-[13px]">OK</button>
                   </div>
                 </div>
               </div>
             )}
 
             {resetConfirm && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl flex flex-col text-center`}>
-                  <div className="w-16 h-16 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-4 text-[32px] shadow-sm">
-                    <span className="material-symbols-rounded text-[30px]">warning</span>
-                  </div>
-                  <h3 className="text-[18px] font-extrabold tracking-tight mb-1.5">{t.resetAll}</h3>
-                  <p className="text-[12px] opacity-70 mb-6 leading-relaxed">{t.confirmReset}</p>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center`}>
+                  <div className="w-16 h-16 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-4"><span className="material-symbols-rounded text-[30px]">warning</span></div>
+                  <h3 className="text-[18px] font-extrabold mb-1.5">{t.resetAll}</h3>
+                  <p className="text-[12px] opacity-70 mb-6">{t.confirmReset}</p>
                   <div className="flex gap-2.5">
                     <button onClick={() => setResetConfirm(false)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
-                    <button onClick={resetAllDataCloud} className="flex-1 py-3 bg-expense text-white rounded-[16px] font-bold text-[13px] shadow-md">Reset</button>
+                    <button onClick={resetAllDataCloud} className="flex-1 py-3 bg-expense text-white rounded-[16px] font-bold text-[13px]">Reset Total</button>
                   </div>
                 </div>
               </div>
             )}
 
             {modal === 'ManageAccounts' && (
-              <ManageAccountsModal 
-                isDark={isDark} t={t} accounts={accounts} 
-                onClose={() => setModal(null)} onSave={(accs) => { saveCloudSettings('accounts', accs); setModal(null); }} 
-              />
+              <ManageAccountsModal isDark={isDark} t={t} accounts={accounts} onClose={() => setModal(null)} onSave={(accs) => { saveCloudSettings('accounts', accs); setModal(null); }} />
             )}
 
             {modal === 'AddPlan' && (
-              <AddPlanModal 
-                isDark={isDark} t={t} planTab={planTab} expenseCats={expenseCats}
-                onClose={() => setModal(null)} 
-                onSave={(data) => {
-                  if (planTab === 'Budget') {
-                    const updated = [...budgets, { id: 'b'+Date.now(), category: data.name, limit: data.val, icon: 'category' }];
-                    saveCloudSettings('budgets', updated);
-                  }
-                  if (planTab === 'Goals') {
-                    const updated = [...goals, { id: 'g'+Date.now(), name: data.name, target: data.val, icon: 'shield' }];
-                    saveCloudSettings('goals', updated);
-                  }
-                  if (planTab === 'Bills') {
-                    const updated = [...bills, { id: 'bl'+Date.now(), name: data.name, amount: data.val, icon: 'receipt_long' }];
-                    saveCloudSettings('bills', updated);
-                  }
-                  if (planTab === 'Investasi') {
-                    const updated = [...investments, { id: 'i'+Date.now(), name: data.name, type: data.subType || 'Reksa Dana', icon: 'trending_up', mockReturnPct: data.val }];
-                    saveCloudSettings('investments', updated);
-                  }
-                  setModal(null);
-                }}
-              />
+              <AddPlanModal isDark={isDark} t={t} planTab={planTab} expenseCats={expenseCats} onClose={() => setModal(null)} onSave={(data) => {
+                if (planTab === 'Budget') saveCloudSettings('budgets', [...budgets, { id: 'b'+Date.now(), category: data.name, limit: data.val, icon: 'category' }]);
+                if (planTab === 'Goals') saveCloudSettings('goals', [...goals, { id: 'g'+Date.now(), name: data.name, target: data.val, icon: 'shield' }]);
+                if (planTab === 'Bills') saveCloudSettings('bills', [...bills, { id: 'bl'+Date.now(), name: data.name, amount: data.val, icon: 'receipt_long' }]);
+                if (planTab === 'Investasi') saveCloudSettings('investments', [...investments, { id: 'i'+Date.now(), name: data.name, type: data.subType, icon: 'trending_up', mockReturnPct: data.val }]);
+                setModal(null);
+              }} />
             )}
 
             {modal === 'ManageCategories' && (
-              <ManageCategoriesModal 
-                isDark={isDark} t={t} incomeCats={incomeCats} expenseCats={expenseCats}
-                onClose={() => setModal(null)} 
-                onSave={(inc, exp) => { 
-                  saveCloudSettings('incomeCats', inc);
-                  saveCloudSettings('expenseCats', exp);
-                  setModal(null); 
-                }}
-              />
+              <ManageCategoriesModal isDark={isDark} t={t} incomeCats={incomeCats} expenseCats={expenseCats} onClose={() => setModal(null)} onSave={(inc, exp) => { saveCloudSettings('incomeCats', inc); saveCloudSettings('expenseCats', exp); setModal(null); }} />
             )}
 
-            {/* HALAMAN / MODAL SELENGKAPNYA AKTIVITAS */}
             {showAllActivity && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[360px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-[18px] font-extrabold tracking-tight">{t.allActivity}</h2>
+                    <h2 className="text-[18px] font-extrabold">{t.allActivity}</h2>
                     <button onClick={() => setShowAllActivity(false)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
-                    {transactions.length === 0 ? (
-                      <p className="text-center opacity-50 py-12 text-[12px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No activity history.'}</p>
-                    ) : (
-                      [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(tx => {
-                        const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
-                        return (
-                          <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
-                            <div className="truncate pr-3 flex-1">
-                              <p className="font-bold text-[13px] tracking-tight truncate">{tx.desc || tx.category}</p>
-                              <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{formatDetailedDateTime(tx.createdAt)} • {tx.creator} • {accName}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <p className={`font-extrabold text-[13px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
-                                {tx.type==='Income'?'+':'-'}{formatRp(tx.amount)}
-                              </p>
-                              <button onClick={() => deleteTransactionFromCloud(tx.docId)} className="text-expense bg-expense/10 p-1.5 rounded-lg hover:bg-expense/20 transition">
-                                <span className="material-symbols-rounded text-[14px]">delete</span>
-                              </button>
-                            </div>
+                    {transactions.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">{t.noHistory}</p> :
+                      [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(tx => (
+                        <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
+                          <div className="truncate pr-3 flex-1">
+                            <p className="font-bold text-[13px] truncate">{tx.desc || tx.category}</p>
+                            <p className="text-[10px] opacity-50 mt-0.5">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
                           </div>
-                        )
-                      })
-                    )}
+                          <div className="flex items-center gap-2">
+                            <p className={`font-extrabold text-[13px] ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
+                              {tx.type==='Income'?'+':'-'}{formatRp(tx.amount)}
+                            </p>
+                            <button onClick={() => deleteTransactionFromCloud(tx.docId)} className="text-expense bg-expense/10 p-1.5 rounded-lg"><span className="material-symbols-rounded text-[14px]">delete</span></button>
+                          </div>
+                        </div>
+                      ))
+                    }
                   </div>
                 </div>
               </div>
             )}
 
             {detailData && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
                   <div className="flex justify-between items-center mb-5">
-                    <h2 className="text-[18px] font-extrabold tracking-tight truncate max-w-[75%]">{detailData.title}</h2>
+                    <h2 className="text-[18px] font-extrabold truncate max-w-[75%]">{detailData.title}</h2>
                     <button onClick={() => setDetailData(null)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
-                    {detailData.txs.length === 0 && <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No transaction history.'}</p>}
                     {detailData.txs.map(tx => (
                       <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
                         <div className="truncate pr-3 flex-1">
-                          <p className="font-bold text-[13px] tracking-tight truncate">{tx.desc || tx.category}</p>
-                          <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
+                          <p className="font-bold text-[13px] truncate">{tx.desc || tx.category}</p>
+                          <p className="text-[10px] opacity-50 mt-0.5">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
                         </div>
                         <div className="flex items-center gap-2.5">
-                          <p className={`font-extrabold text-[13px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
-                            {formatRp(tx.amount)}
-                          </p>
-                          {detailData.type === 'Detail Transaksi' && (
-                            <button onClick={() => { deleteTransactionFromCloud(tx.docId); setDetailData(null); }} className="text-expense bg-expense/10 p-2 rounded-xl hover:bg-expense/20 transition">
-                              <span className="material-symbols-rounded text-[16px]">delete</span>
-                            </button>
-                          )}
+                          <p className={`font-extrabold text-[13px] ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>{formatRp(tx.amount)}</p>
+                          {detailData.type === 'Detail Transaksi' && <button onClick={() => { deleteTransactionFromCloud(tx.docId); setDetailData(null); }} className="text-expense bg-expense/10 p-2 rounded-xl"><span className="material-symbols-rounded text-[16px]">delete</span></button>}
                         </div>
                       </div>
                     ))}
                   </div>
                   {detailData.type !== 'Detail Transaksi' && (
                     <button onClick={() => { 
-                      if(detailData.type==='Budget') {
-                        const updated = budgets.filter(b=>b.id !== detailData.item.id);
-                        saveCloudSettings('budgets', updated);
-                      }
-                      if(detailData.type==='Goal') {
-                        const updated = goals.filter(g=>g.name !== detailData.item.name);
-                        saveCloudSettings('goals', updated);
-                      }
-                      if(detailData.type==='Bill') {
-                        const updated = bills.filter(bl=>bl.name !== detailData.item.name);
-                        saveCloudSettings('bills', updated);
-                      }
-                      if(detailData.type==='Investasi') {
-                        const updated = investments.filter(i=>i.name !== detailData.item.name);
-                        saveCloudSettings('investments', updated);
-                      }
+                      if(detailData.type==='Budget') saveCloudSettings('budgets', budgets.filter(b=>b.id !== detailData.item.id));
+                      if(detailData.type==='Goal') saveCloudSettings('goals', goals.filter(g=>g.id !== detailData.item.id));
+                      if(detailData.type==='Bill') saveCloudSettings('bills', bills.filter(bl=>bl.id !== detailData.item.id));
+                      if(detailData.type==='Investasi') saveCloudSettings('investments', investments.filter(i=>i.id !== detailData.item.id));
                       setDetailData(null); 
-                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5 transition hover:bg-expense/20">{t.delete} {detailData.type}</button>
+                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5">{t.delete} {detailData.type}</button>
                   )}
                 </div>
               </div>
             )}
 
             {(modal === 'Transaction' || txPrefill) && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl transition-colors`}>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
                   <FormTransaction 
-                    t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} 
-                    prefill={txPrefill}
+                    t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} prefill={txPrefill} geminiApiKey={geminiApiKey} 
                     onClose={() => { setModal(null); setTxPrefill(null); }} 
                     onSave={(tx) => { 
                       const nowIso = new Date();
                       const liveDateStr = `${nowIso.getFullYear()}-${String(nowIso.getMonth()+1).padStart(2,'0')}-${String(nowIso.getDate()).padStart(2,'0')}`;
                       addTransactionToCloud({ ...tx, date: liveDateStr, creator: activeUser.name, createdAt: Date.now() }); 
-                      setModal(null); 
-                      setTxPrefill(null);
+                      setModal(null); setTxPrefill(null);
                     }} 
                   />
                 </div>
@@ -1040,33 +815,22 @@
 
     function ManageAccountsModal({ isDark, t, accounts, onClose, onSave }) {
       const [localAccs, setLocalAccs] = useState([...accounts]);
-      const updateAccName = (id, val) => { setLocalAccs(localAccs.map(a => a.id === id ? { ...a, name: val } : a)); };
-      const addAcc = () => { setLocalAccs([...localAccs, { id: 'a'+Date.now(), name: 'New Wallet', type: 'Bank', owner: 'Shared', icon: 'account_balance' }]); };
-
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-[18px] font-extrabold tracking-tight">{t.manageWallet}</h2>
-              <div className="flex gap-2">
-                <button onClick={addAcc} className="bg-accent/10 text-accent w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">add</span></button>
-                <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
-              </div>
+              <h2 className="text-[18px] font-extrabold">{t.manageWallet}</h2>
+              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
               {localAccs.map(acc => (
                 <div key={acc.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex items-center gap-3">
                   <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[10px] text-[16px]">{acc.icon}</span>
-                  <div className="flex-1">
-                    <input type="text" value={acc.name} onChange={e => updateAccName(acc.id, e.target.value)} className="w-full bg-transparent font-bold text-[14px] outline-none" placeholder="Wallet Name" />
-                  </div>
-                  <button onClick={() => setLocalAccs(localAccs.filter(a => a.id !== acc.id))} className="text-expense opacity-50 hover:opacity-100">
-                    <span className="material-symbols-rounded text-[16px]">delete</span>
-                  </button>
+                  <input type="text" value={acc.name} onChange={e => setLocalAccs(localAccs.map(a => a.id === acc.id ? { ...a, name: e.target.value } : a))} className="w-full bg-transparent font-bold text-[14px] outline-none" />
                 </div>
               ))}
             </div>
-            <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
+            <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5">{t.save}</button>
           </div>
         </div>
       );
@@ -1079,17 +843,11 @@
       const [displayVal, setDisplayVal] = useState('');
       const inputClass = `w-full ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[16px] p-3.5 text-[14px] font-bold outline-none appearance-none`;
 
-      const handleValChange = (e) => {
-        const clean = e.target.value.replace(/\D/g, '');
-        setVal(clean);
-        setDisplayVal(formatNumberInput(clean));
-      };
-
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end animate-[fadeIn_0.2s_ease]">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-[18px] font-extrabold tracking-tight">Add {planTab}</h2>
+              <h2 className="text-[18px] font-extrabold">Add {planTab}</h2>
               <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
             <div className="space-y-3.5">
@@ -1098,9 +856,8 @@
                   {expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 </select>
               ) : (
-                <input type="text" placeholder={planTab === 'Investasi' ? 'Nama Produk (cth: SBN ORI026)' : 'Name'} value={name} onChange={e => setName(e.target.value)} className={inputClass} />
+                <input type="text" placeholder={planTab === 'Investasi' ? 'Nama Portofolio (cth: Tino)' : 'Name'} value={name} onChange={e => setName(e.target.value)} className={inputClass} />
               )}
-
               {planTab === 'Investasi' && (
                 <select value={subType} onChange={e => setSubType(e.target.value)} className={inputClass}>
                   <option value="Reksa Dana">Reksa Dana</option>
@@ -1108,10 +865,8 @@
                   <option value="Obligasi">Obligasi / SBN</option>
                 </select>
               )}
-
-              <input type="text" placeholder={planTab === 'Investasi' ? 'Estimasi Return (%)' : 'Amount (Rp)'} value={planTab === 'Investasi' ? val : displayVal} onChange={planTab === 'Investasi' ? (e)=>setVal(e.target.value) : handleValChange} className={inputClass} />
-              
-              <button onClick={() => { if(name && val) onSave({name, subType, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-3 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
+              <input type="text" placeholder={planTab === 'Investasi' ? 'Estimasi Return (%)' : 'Amount (Rp)'} value={planTab === 'Investasi' ? val : displayVal} onChange={planTab === 'Investasi' ? (e)=>setVal(e.target.value) : (e)=>{ const clean = e.target.value.replace(/\D/g, ''); setVal(clean); setDisplayVal(formatNumberInput(clean)); }} className={inputClass} />
+              <button onClick={() => { if(name && val) onSave({name, subType, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-3">{t.save}</button>
             </div>
           </div>
         </div>
@@ -1123,18 +878,11 @@
       const [exp, setExp] = useState([...expenseCats]);
       const [newCat, setNewCat] = useState('');
       const [type, setType] = useState('Expense');
-      
-      const add = () => {
-        if(!newCat) return;
-        if(type==='Expense') setExp([...exp, newCat]); else setInc([...inc, newCat]);
-        setNewCat('');
-      }
-
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-[18px] font-extrabold tracking-tight">{t.manageCat}</h2>
+              <h2 className="text-[18px] font-extrabold">{t.manageCat}</h2>
               <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
             <div className="flex gap-2 mb-3.5">
@@ -1142,14 +890,14 @@
               <button onClick={() => setType('Income')} className={`flex-1 py-2 rounded-[12px] text-xs font-bold ${type==='Income' ? 'bg-income text-white' : 'bg-black/5 dark:bg-white/5'}`}>{t.income}</button>
             </div>
             <div className="flex gap-2 mb-3.5">
-              <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="New category..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-3.5 text-xs font-bold outline-none`} />
-              <button onClick={add} className="bg-accent text-white px-3.5 py-2.5 rounded-[12px] font-bold text-sm">+</button>
+              <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Kategori baru..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-3.5 text-xs font-bold outline-none`} />
+              <button onClick={() => { if(newCat) { if(type==='Expense') setExp([...exp, newCat]); else setInc([...inc, newCat]); setNewCat(''); } }} className="bg-accent text-white px-3.5 py-2.5 rounded-[12px] font-bold text-sm">+</button>
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
               {(type==='Expense'?exp:inc).map((c, i) => (
                 <div key={i} className="p-3 bg-black/5 dark:bg-white/5 rounded-[14px] flex justify-between items-center">
                   <span className="font-bold text-[13px]">{c}</span>
-                  <button onClick={() => type==='Expense' ? setExp(exp.filter(x=>x!==c)) : setInc(inc.filter(x=>x!==c))} className="text-expense opacity-50 hover:opacity-100"><span className="material-symbols-rounded text-[16px]">delete</span></button>
+                  <button onClick={() => type==='Expense' ? setExp(exp.filter(x=>x!==c)) : setInc(inc.filter(x=>x!==c))} className="text-expense"><span className="material-symbols-rounded text-[16px]">delete</span></button>
                 </div>
               ))}
             </div>
@@ -1159,24 +907,18 @@
       );
     }
 
-    function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, onClose, onSave }) {
+    function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, geminiApiKey, onClose, onSave }) {
       const [type, setType] = useState(prefill?.type || 'Expense');
       const initialRaw = prefill?.amount ? String(prefill.amount) : '';
       const [rawAmount, setRawAmount] = useState(initialRaw);
       const [displayAmount, setDisplayAmount] = useState(formatNumberInput(initialRaw));
       const [accountId, setAccountId] = useState(accounts[0]?.id || '');
       const [category, setCategory] = useState(prefill?.category || expenseCats[0] || 'Lainnya');
+      const [investmentId, setInvestmentId] = useState(prefill?.investmentId || investments[0]?.id || '');
+      const [goalId, setGoalId] = useState(prefill?.goalId || goals[0]?.id || '');
+      const [billId, setBillId] = useState(prefill?.billId || bills[0]?.id || '');
       const [desc, setDesc] = useState(prefill?.desc || '');
-
-      useEffect(() => {
-        if (!prefill) {
-          if(type === 'Expense') setCategory(expenseCats[0] || 'Lainnya');
-          if(type === 'Income') setCategory(incomeCats[0] || 'Gaji');
-          if(type === 'Goal') setCategory(goals[0]?.name || '');
-          if(type === 'Bill') setCategory(bills[0]?.name || '');
-          if(type === 'Investasi') setCategory(investments[0]?.name || '');
-        }
-      }, [type]);
+      const [isScanning, setIsScanning] = useState(false);
 
       const handleAmountChange = (e) => {
         const val = e.target.value;
@@ -1185,29 +927,111 @@
         setDisplayAmount(formatNumberInput(clean));
       };
 
+      const handleScanReceipt = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!geminiApiKey) {
+          alert('Mohon masukkan Gemini API Key terlebih dahulu di menu Pengaturan (Settings)!');
+          return;
+        }
+
+        setIsScanning(true);
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = async () => {
+            const base64Data = reader.result.split(',')[1];
+            const mimeType = file.type;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { text: "Analyze this receipt image. Extract 3 things in valid JSON format: {\"amount\": number (total amount), \"merchant\": string (store name), \"category\": string (choose best fit from: Groceries, Kebutuhan Pokok, Keinginan, Transport, Bayi & Anak, Listrik & Air)}. Output ONLY JSON." },
+                    { inline_data: { mime_type: mimeType, data: base64Data } }
+                  ]
+                }]
+              })
+            });
+
+            const data = await response.json();
+            const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textResult) {
+              const cleanJson = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
+              const parsed = JSON.parse(cleanJson);
+              if (parsed.amount) {
+                setRawAmount(String(parsed.amount));
+                setDisplayAmount(formatNumberInput(String(parsed.amount)));
+              }
+              if (parsed.merchant) setDesc(parsed.merchant);
+              if (parsed.category && expenseCats.includes(parsed.category)) {
+                setType('Expense');
+                setCategory(parsed.category);
+              }
+            }
+            setIsScanning(false);
+          };
+        } catch (err) {
+          console.error(err);
+          alert('Gagal memindai nota dengan AI.');
+          setIsScanning(false);
+        }
+      };
+
       const submit = () => {
         const num = parseFloat(rawAmount) || 0;
         if (num <= 0) return;
         let icon = 'payments';
+        let finalCat = category;
+        let invId = null;
+        let gId = null;
+        let bId = null;
+
         if (type === 'Expense') icon = 'shopping_cart';
-        if (type === 'Goal') icon = 'shield';
-        if (type === 'Bill') icon = 'receipt_long';
-        if (type === 'Investasi') icon = 'trending_up';
-        onSave({ type, amount: num, accountId, category, desc, icon });
+        if (type === 'Goal') {
+          icon = 'shield';
+          const selectedGoal = goals.find(g => g.name === category);
+          if (selectedGoal) gId = selectedGoal.id;
+        }
+        if (type === 'Bill') {
+          icon = 'receipt_long';
+          const selectedBill = bills.find(b => b.name === category);
+          if (selectedBill) bId = selectedBill.id;
+        }
+        if (type === 'Investasi') {
+          icon = 'trending_up';
+          const selectedInv = investments.find(i => i.name === category);
+          if (selectedInv) invId = selectedInv.id;
+        }
+        onSave({ type, amount: num, accountId, category: finalCat, investmentId: invId, goalId: gId, billId: bId, desc, icon });
       };
 
-      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none transition-all appearance-none`;
+      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none appearance-none`;
 
       return (
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-1">
-            <h2 className="text-[20px] font-extrabold tracking-tight">{t.addTx}</h2>
-            <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
+            <h2 className="text-[20px] font-extrabold">{t.addTx}</h2>
+            <div className="flex items-center gap-2">
+              <label className="bg-accent/15 text-accent px-3 py-1.5 rounded-xl font-bold text-xs cursor-pointer flex items-center gap-1 hover:bg-accent/25 transition">
+                <span className="material-symbols-rounded text-sm">photo_camera</span>
+                {isScanning ? 'Scanning...' : t.aiScanBtn}
+                <input type="file" accept="image/*" onChange={handleScanReceipt} className="hidden" />
+              </label>
+              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
+            </div>
           </div>
           
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {[ { id: 'Expense', label: t.expense, color: 'bg-expense' }, { id: 'Income', label: t.income, color: 'bg-income' }, { id: 'Goal', label: 'Goal', color: 'bg-accent' }, { id: 'Bill', label: 'Bills', color: 'bg-warning' }, { id: 'Investasi', label: 'Invest', color: 'bg-invest' }].map(tb => (
-              <button key={tb.id} onClick={() => setType(tb.id)} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
+              <button key={tb.id} onClick={() => { 
+                setType(tb.id); 
+                if(tb.id==='Investasi' && investments[0]) setCategory(investments[0].name);
+                if(tb.id==='Goal' && goals[0]) setCategory(goals[0].name);
+                if(tb.id==='Bill' && bills[0]) setCategory(bills[0].name);
+              }} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
                 {tb.label}
               </button>
             ))}
@@ -1220,12 +1044,12 @@
 
           <div className="flex gap-3">
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.wallet}</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.wallet}</label>
               <select value={accountId} onChange={e => setAccountId(e.target.value)} className={inputClass}>{accounts.map(a => <option key={a.id} value={a.id} className="text-black">{a.name}</option>)}</select>
             </div>
             
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.category}</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.category}</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className={inputClass}>
                 {type === 'Expense' && expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 {type === 'Income' && incomeCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
@@ -1237,11 +1061,11 @@
           </div>
 
           <div>
-            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.note}</label>
+            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.note}</label>
             <input type="text" placeholder="..." value={desc} onChange={e => setDesc(e.target.value)} className={inputClass} />
           </div>
 
-          <button onClick={submit} className="w-full bg-accent text-white font-extrabold text-[15px] py-3.5 rounded-[16px] mt-1 shadow-[0_10px_24px_rgba(0,122,255,0.3)] hover:scale-[1.02] transition-transform">
+          <button onClick={submit} className="w-full bg-accent text-white font-extrabold text-[15px] py-3.5 rounded-[16px] mt-1 shadow-[0_10px_24px_rgba(0,122,255,0.3)]">
             {t.save}
           </button>
         </div>
