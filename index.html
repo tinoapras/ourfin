@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Final 21.0</title>
+  <title>OURFIN - Final 22.0</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -68,6 +68,10 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect, useRef } = React;
 
+    // ----- KONFIGURASI API KEY GEMINI (UBAH DI SINI) -----
+    const GEMINI_API_KEY = "MASUKKAN_API_KEY_ANDA_DISINI"; 
+    // -----------------------------------------------------
+
     const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
     const formatNumberInput = (val) => {
       if (!val) return '';
@@ -121,11 +125,11 @@
         expense: 'Pengeluaran', income: 'Pemasukan', note: 'Catatan', category: 'Kategori', wallet: 'Dompet', edit: 'Edit', delete: 'Hapus',
         manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data',
         switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
-        resetAll: 'Reset Total Database', confirmReset: 'PERINGATAN! Ini akan menghapus SEMUA transaksi dan mereset dompet, kategori, serta anggaran kembali ke bawaan pabrik. Lanjutkan?',
+        resetAll: 'Reset Total Database', confirmReset: 'PERINGATAN! Ini akan menghapus SEMUA transaksi dan mereset dompet, kategori, serta anggaran kembali ke bawaan pabrik (Kosong). Lanjutkan?',
         more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', totalBudget: 'Total Anggaran', totalBills: 'Total Tagihan', 
         netEstimate: 'Estimasi Bersih', cycleIn: 'Masuk Siklus', cycleOut: 'Keluar Siklus', remaining: 'Sisa', collected: 'Terkumpul',
-        paid: 'Lunas', unpaid: 'Belum', detailTx: 'Detail Transaksi', noHistory: 'Belum ada riwayat transaksi.',
-        aiScanBtn: 'Scan Nota AI', aiApiKeyLabel: 'Gemini API Key (Untuk Scan Nota)'
+        paid: 'Lunas', unpaid: 'Belum', detailTx: 'Detail Transaksi', noHistory: 'Belum ada riwayat transaksi.', noWallets: 'Belum ada dompet. Tambahkan sekarang.',
+        aiScanBtn: 'Scan Nota AI'
       },
       en: { 
         welcome: 'Welcome', switch: 'Switch', overview: 'Overview', planning: 'Planning', report: 'Reports', settings: 'Settings', 
@@ -134,11 +138,11 @@
         expense: 'Expense', income: 'Income', note: 'Note', category: 'Category', wallet: 'Wallet', edit: 'Edit', delete: 'Delete',
         manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export',
         switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
-        resetAll: 'Full Database Reset', confirmReset: 'WARNING! This will delete ALL transactions and reset wallets, categories, and plans to factory defaults. Continue?',
+        resetAll: 'Full Database Reset', confirmReset: 'WARNING! This will delete ALL transactions and reset wallets, categories, and plans to empty factory defaults. Continue?',
         more: 'More', allActivity: 'All Activity Details', totalBudget: 'Total Budget', totalBills: 'Total Bills', 
         netEstimate: 'Net Estimate', cycleIn: 'Cycle In', cycleOut: 'Cycle Out', remaining: 'Remaining', collected: 'Collected',
-        paid: 'Paid', unpaid: 'Unpaid', detailTx: 'Transaction Detail', noHistory: 'No transaction history.',
-        aiScanBtn: 'AI Receipt Scan', aiApiKeyLabel: 'Gemini API Key (For Receipt Scan)'
+        paid: 'Paid', unpaid: 'Unpaid', detailTx: 'Transaction Detail', noHistory: 'No transaction history.', noWallets: 'No wallets yet. Add one now.',
+        aiScanBtn: 'AI Receipt Scan'
       }
     };
 
@@ -147,24 +151,18 @@
       en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     };
 
-    // Default States (Bawaan Pabrik untuk fungsi Reset)
-    const DEFAULT_ACCOUNTS = [
-      { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance' },
-      { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance' },
-      { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet' },
-      { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments' }
-    ];
+    // Default States (Bawaan Pabrik untuk fungsi Reset - Semua Kosong Mulai dari 0 kecuali Kategori Template)
+    const DEFAULT_ACCOUNTS = []; 
+    const DEFAULT_BUDGETS = [];
+    const DEFAULT_GOALS = [];
+    const DEFAULT_BILLS = [];
+    const DEFAULT_INVESTMENTS = [];
     const DEFAULT_INCOME_CATS = ['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya'];
     const DEFAULT_EXPENSE_CATS = ['Groceries', 'Kebutuhan Pokok', 'Keinginan', 'Transport', 'Bayi & Anak', 'Listrik & Air'];
-    const DEFAULT_BUDGETS = [{ id: 'b1', category: 'Kebutuhan Pokok', limit: 3500000, icon: 'home' }];
-    const DEFAULT_GOALS = [{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }];
-    const DEFAULT_BILLS = [{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }];
-    const DEFAULT_INVESTMENTS = [{ id: 'i1', name: 'Bibit Pasar Uang', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 }];
 
     function App() {
       const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark') === 'true');
       const [lang, setLang] = useState(() => localStorage.getItem('ourfin_lang') || 'id');
-      const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem('ourfin_gemini_key') || '');
       
       const [activeUser, setActiveUser] = useState(() => {
         const saved = localStorage.getItem('ourfin_active_user');
@@ -190,7 +188,6 @@
       }, [isDark]);
 
       useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
-      useEffect(() => { localStorage.setItem('ourfin_gemini_key', geminiApiKey); }, [geminiApiKey]);
 
       const now = new Date();
       const currentYear = now.getFullYear();
@@ -280,7 +277,7 @@
         }
       };
 
-      // FULL RESET DATABASE (Transactions + Settings)
+      // FULL RESET DATABASE (Transactions + Settings to Empty/Zero)
       const resetAllDataCloud = async () => {
         if (window.db && window.FirestoreModule) {
           const { collection, getDocs, doc, deleteDoc, setDoc } = window.FirestoreModule;
@@ -290,7 +287,7 @@
           const deletes = querySnapshot.docs.map(d => deleteDoc(doc(window.db, 'transactions', d.id)));
           await Promise.all(deletes);
 
-          // Timpa ulang (reset) semua pengaturan ke bawaan pabrik
+          // Timpa ulang (reset) semua pengaturan ke bawaan pabrik (Kosong)
           await setDoc(doc(window.db, 'settings', 'accounts'), { items: DEFAULT_ACCOUNTS });
           await setDoc(doc(window.db, 'settings', 'incomeCats'), { items: DEFAULT_INCOME_CATS });
           await setDoc(doc(window.db, 'settings', 'expenseCats'), { items: DEFAULT_EXPENSE_CATS });
@@ -302,7 +299,7 @@
         
         setTransactions([]);
         setResetConfirm(false);
-        alert(lang === 'id' ? 'Seluruh database berhasil direset ke pengaturan awal!' : 'Database successfully reset to default settings!');
+        alert(lang === 'id' ? 'Seluruh database berhasil direset ke pengaturan awal (kosong)!' : 'Database successfully reset to empty default settings!');
       };
 
       // Kalkulasi Saldo
@@ -421,20 +418,24 @@
                     <div className="flex justify-between items-center mb-3 px-1">
                       <h3 className="text-[16px] font-bold tracking-tight">{t.accounts}</h3>
                       <button onClick={() => setModal('ManageAccounts')} className="text-accent bg-accent/10 px-3 py-1.5 rounded-[12px] flex items-center gap-1 hover:bg-accent/20 transition">
-                        <span className="material-symbols-rounded text-[14px]">edit</span>
-                        <span className="text-[11px] font-bold">{t.edit}</span>
+                        <span className="material-symbols-rounded text-[14px]">{accounts.length === 0 ? 'add' : 'edit'}</span>
+                        <span className="text-[11px] font-bold">{accounts.length === 0 ? 'Tambah' : t.edit}</span>
                       </button>
                     </div>
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                      {calculatedAccounts.map(acc => (
-                        <div key={acc.id} className={`${glassClass} min-w-[140px] p-4 rounded-[20px] flex-shrink-0`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="material-symbols-rounded text-accent bg-accent/10 p-1 rounded-[8px] text-[16px] shadow-sm">{acc.icon}</span>
-                            <span className="text-[12px] font-bold truncate tracking-tight">{acc.name}</span>
+                      {calculatedAccounts.length === 0 ? (
+                        <p className="text-center opacity-50 py-3 text-[12px] font-semibold w-full italic">{t.noWallets}</p>
+                      ) : (
+                        calculatedAccounts.map(acc => (
+                          <div key={acc.id} className={`${glassClass} min-w-[140px] p-4 rounded-[20px] flex-shrink-0`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="material-symbols-rounded text-accent bg-accent/10 p-1 rounded-[8px] text-[16px] shadow-sm">{acc.icon}</span>
+                              <span className="text-[12px] font-bold truncate tracking-tight">{acc.name}</span>
+                            </div>
+                            <p className="font-extrabold text-[14px]">{formatRp(acc.balance)}</p>
                           </div>
-                          <p className="font-extrabold text-[14px]">{formatRp(acc.balance)}</p>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -645,11 +646,6 @@
                     </button>
                   </div>
 
-                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-4 space-y-2`}>
-                    <label className="text-[11px] font-bold uppercase opacity-60 tracking-wider block">{t.aiApiKeyLabel}</label>
-                    <input type="password" placeholder="AIzaSy..." value={geminiApiKey} onChange={(e) => setGeminiApiKey(e.target.value)} className={`w-full ${isDark?'bg-black/30':'bg-white'} border border-black/10 dark:border-white/10 rounded-xl p-3 text-xs font-bold outline-none`} />
-                  </div>
-
                   <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
                     <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-3.5 rounded-[16px]">
                       <div className="flex items-center gap-2.5"><span className="material-symbols-rounded text-[18px]">warning</span><span className="font-bold text-[13px]">{t.resetAll}</span></div>
@@ -786,7 +782,7 @@
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
                   <FormTransaction 
-                    t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} prefill={txPrefill} geminiApiKey={geminiApiKey} 
+                    t={t} lang={lang} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} prefill={txPrefill}
                     onClose={() => { setModal(null); setTxPrefill(null); }} 
                     onSave={(tx) => { 
                       const nowIso = new Date();
@@ -815,6 +811,27 @@
 
     function ManageAccountsModal({ isDark, t, accounts, onClose, onSave }) {
       const [localAccs, setLocalAccs] = useState([...accounts]);
+      const [newName, setNewName] = useState('');
+      const [newType, setNewType] = useState('Bank');
+
+      const getIcon = (type) => {
+        if (type === 'Bank') return 'account_balance';
+        if (type === 'E-Wallet') return 'account_balance_wallet';
+        return 'payments'; // Cash
+      };
+
+      const handleAdd = () => {
+        if (!newName) return;
+        setLocalAccs([...localAccs, {
+          id: 'a' + Date.now(),
+          name: newName,
+          type: newType,
+          owner: 'Pribadi',
+          icon: getIcon(newType)
+        }]);
+        setNewName('');
+      };
+
       return (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
@@ -822,13 +839,28 @@
               <h2 className="text-[18px] font-extrabold">{t.manageWallet}</h2>
               <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
-            <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
+            
+            <div className="flex gap-2 mb-4">
+              <select value={newType} onChange={e=>setNewType(e.target.value)} className={`w-[90px] ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-2 text-[11px] font-bold outline-none`}>
+                <option value="Bank">Bank</option>
+                <option value="E-Wallet">E-Wallet</option>
+                <option value="Cash">Cash</option>
+              </select>
+              <input type="text" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Nama Dompet..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-3.5 text-xs font-bold outline-none`} />
+              <button onClick={handleAdd} className="bg-accent text-white px-3 py-2 rounded-[12px] font-bold text-sm">+</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
               {localAccs.map(acc => (
-                <div key={acc.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex items-center gap-3">
-                  <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[10px] text-[16px]">{acc.icon}</span>
-                  <input type="text" value={acc.name} onChange={e => setLocalAccs(localAccs.map(a => a.id === acc.id ? { ...a, name: e.target.value } : a))} className="w-full bg-transparent font-bold text-[14px] outline-none" />
+                <div key={acc.id} className="p-3 bg-black/5 dark:bg-white/5 rounded-[14px] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 flex-1">
+                    <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[10px] text-[16px]">{acc.icon}</span>
+                    <input type="text" value={acc.name} onChange={e => setLocalAccs(localAccs.map(a => a.id === acc.id ? { ...a, name: e.target.value } : a))} className="w-full bg-transparent font-bold text-[13px] outline-none" />
+                  </div>
+                  <button onClick={() => setLocalAccs(localAccs.filter(a => a.id !== acc.id))} className="text-expense p-1.5 hover:bg-expense/10 rounded-lg transition"><span className="material-symbols-rounded text-[16px]">delete</span></button>
                 </div>
               ))}
+              {localAccs.length === 0 && <p className="text-center opacity-50 py-4 text-[12px] italic">Belum ada dompet.</p>}
             </div>
             <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5">{t.save}</button>
           </div>
@@ -907,7 +939,7 @@
       );
     }
 
-    function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, geminiApiKey, onClose, onSave }) {
+    function FormTransaction({ t, lang, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, onClose, onSave }) {
       const [type, setType] = useState(prefill?.type || 'Expense');
       const initialRaw = prefill?.amount ? String(prefill.amount) : '';
       const [rawAmount, setRawAmount] = useState(initialRaw);
@@ -930,8 +962,9 @@
       const handleScanReceipt = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (!geminiApiKey) {
-          alert('Mohon masukkan Gemini API Key terlebih dahulu di menu Pengaturan (Settings)!');
+
+        if (!GEMINI_API_KEY || GEMINI_API_KEY === "MASUKKAN_API_KEY_ANDA_DISINI") {
+          alert(lang === 'id' ? 'Silakan masukkan API Key Gemini di dalam kode HTML Anda (Variabel GEMINI_API_KEY) terlebih dahulu.' : 'Please insert your Gemini API Key into the HTML code (GEMINI_API_KEY variable) first.');
           return;
         }
 
@@ -943,7 +976,7 @@
             const base64Data = reader.result.split(',')[1];
             const mimeType = file.type;
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -981,8 +1014,14 @@
       };
 
       const submit = () => {
+        if (accounts.length === 0) {
+          alert(lang === 'id' ? 'Anda belum memiliki Dompet/Rekening. Silakan tambah dompet terlebih dahulu di menu Pengaturan.' : 'You have no Wallets/Accounts. Please add one first from Settings.');
+          return;
+        }
+
         const num = parseFloat(rawAmount) || 0;
         if (num <= 0) return;
+        
         let icon = 'payments';
         let finalCat = category;
         let invId = null;
@@ -1005,6 +1044,7 @@
           const selectedInv = investments.find(i => i.name === category);
           if (selectedInv) invId = selectedInv.id;
         }
+        
         onSave({ type, amount: num, accountId, category: finalCat, investmentId: invId, goalId: gId, billId: bId, desc, icon });
       };
 
@@ -1045,7 +1085,10 @@
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.wallet}</label>
-              <select value={accountId} onChange={e => setAccountId(e.target.value)} className={inputClass}>{accounts.map(a => <option key={a.id} value={a.id} className="text-black">{a.name}</option>)}</select>
+              <select value={accountId} onChange={e => setAccountId(e.target.value)} className={inputClass}>
+                {accounts.length === 0 && <option value="">Belum Ada Dompet</option>}
+                {accounts.map(a => <option key={a.id} value={a.id} className="text-black">{a.name}</option>)}
+              </select>
             </div>
             
             <div className="flex-1 relative">
