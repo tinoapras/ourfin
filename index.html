@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Full Cloud Sync 18.8</title>
+  <title>OURFIN - Full Cloud Sync 18.9</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -74,6 +74,23 @@
       if (!val) return '';
       const cleanNum = val.toString().replace(/\D/g, '');
       return cleanNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
+    const timeAgo = (timestamp, lang) => {
+      if (!timestamp) return lang === 'id' ? 'Baru saja' : 'Just now';
+      const seconds = Math.floor((Date.now() - timestamp) / 1000);
+      
+      if (seconds < 60) return lang === 'id' ? (seconds <= 5 ? 'Baru saja' : `${seconds} detik lalu`) : (seconds <= 5 ? 'Just now' : `${seconds}s ago`);
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return lang === 'id' ? `${minutes} menit lalu` : `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return lang === 'id' ? `${hours} jam lalu` : `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 30) return lang === 'id' ? `${days} hari lalu` : `${days}d ago`;
+      const months = Math.floor(days / 30);
+      if (months < 12) return lang === 'id' ? `${months} bulan lalu` : `${months}mo ago`;
+      const years = Math.floor(days / 365);
+      return lang === 'id' ? `${years} tahun lalu` : `${years}y ago`;
     };
 
     const COLORS = ['#34C759', '#FF3B30', '#FF9500', '#007AFF', '#AF52DE', '#5AC8FA']; 
@@ -394,7 +411,7 @@
                       {transactions.length === 0 ? (
                         <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada aktivitas transaksi.':'No recent activity.'}</p>
                       ) : (
-                        [...transactions].reverse().slice(0, 5).map(tx => {
+                        [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(tx => {
                           const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
                           return (
                           <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', type: 'Detail Transaksi', txs: [tx] })}>
@@ -404,7 +421,7 @@
                             </div>
                             <div className="flex-1 min-w-0 pr-2">
                               <h4 className="font-bold text-[13px] truncate tracking-tight mb-0.5">{tx.desc || tx.category}</h4>
-                              <p className="text-[10px] opacity-50 truncate tracking-wide">{tx.creator} • {accName}</p>
+                              <p className="text-[10px] opacity-50 truncate tracking-wide">{timeAgo(tx.createdAt, lang)} • {tx.creator}</p>
                             </div>
                             <div className={`font-bold text-[14px] whitespace-nowrap ${tx.type === 'Income' ? 'text-income' : ''}`}>
                               {tx.type === 'Income' ? '+' : '-'}{formatRp(tx.amount)}
@@ -704,7 +721,7 @@
                   </div>
                   
                   <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
-                    OURFIN VERSION 18.8 FULL CLOUD SYNC
+                    OURFIN VERSION 18.9 FULL CLOUD SYNC
                   </div>
                 </div>
               )}
@@ -817,7 +834,7 @@
                       <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
                         <div className="truncate pr-3 flex-1">
                           <p className="font-bold text-[13px] tracking-tight truncate">{tx.desc || tx.category}</p>
-                          <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{tx.date} • {tx.creator}</p>
+                          <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{timeAgo(tx.createdAt, lang)} • {tx.creator}</p>
                         </div>
                         <div className="flex items-center gap-2.5">
                           <p className={`font-extrabold text-[13px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
