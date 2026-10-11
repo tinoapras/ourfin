@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Final 22.0</title>
+  <title>OURFIN - Final 22.2 (PWA Edition)</title>
+  
+  <!-- KODE PWA DIMULAI DARI SINI -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#007AFF">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <!-- BATAS KODE PWA -->
+
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -72,7 +76,7 @@
     const { useState, useMemo, useEffect, useRef } = React;
 
     // ----- KONFIGURASI API KEY GEMINI (UBAH DI SINI) -----
-    const GEMINI_API_KEY = "MASUKKAN_API_KEY_ANDA_DISINI"; 
+    const GEMINI_API_KEY = "AQ.Ab8RN6JQkXpx4C6IrwcBnbbMJguKlTrgrrPeF_ENkUPbW0GHag"; 
     // -----------------------------------------------------
 
     const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num || 0);
@@ -129,7 +133,7 @@
         manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data',
         switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
         resetAll: 'Reset Total Database', confirmReset: 'PERINGATAN! Ini akan menghapus SEMUA transaksi dan mereset dompet, kategori, serta anggaran kembali ke bawaan pabrik (Kosong). Lanjutkan?',
-        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', totalBudget: 'Total Anggaran', totalBills: 'Total Tagihan', 
+        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', totalBudget: 'Sisa Anggaran', totalBills: 'Sisa Tagihan', 
         netEstimate: 'Estimasi Bersih', cycleIn: 'Masuk Siklus', cycleOut: 'Keluar Siklus', remaining: 'Sisa', collected: 'Terkumpul',
         paid: 'Lunas', unpaid: 'Belum', detailTx: 'Detail Transaksi', noHistory: 'Belum ada riwayat transaksi.', noWallets: 'Belum ada dompet. Tambahkan sekarang.',
         aiScanBtn: 'Scan Nota AI'
@@ -142,7 +146,7 @@
         manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export',
         switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
         resetAll: 'Full Database Reset', confirmReset: 'WARNING! This will delete ALL transactions and reset wallets, categories, and plans to empty factory defaults. Continue?',
-        more: 'More', allActivity: 'All Activity Details', totalBudget: 'Total Budget', totalBills: 'Total Bills', 
+        more: 'More', allActivity: 'All Activity Details', totalBudget: 'Budget Left', totalBills: 'Unpaid Bills', 
         netEstimate: 'Net Estimate', cycleIn: 'Cycle In', cycleOut: 'Cycle Out', remaining: 'Remaining', collected: 'Collected',
         paid: 'Paid', unpaid: 'Unpaid', detailTx: 'Transaction Detail', noHistory: 'No transaction history.', noWallets: 'No wallets yet. Add one now.',
         aiScanBtn: 'AI Receipt Scan'
@@ -154,7 +158,7 @@
       en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
     };
 
-    // Default States (Bawaan Pabrik untuk fungsi Reset - Semua Kosong Mulai dari 0 kecuali Kategori Template)
+    // Default States (Dompet & Plan Mulai dari Kosong)
     const DEFAULT_ACCOUNTS = []; 
     const DEFAULT_BUDGETS = [];
     const DEFAULT_GOALS = [];
@@ -224,7 +228,7 @@
             clearInterval(interval);
             const { collection, onSnapshot, doc, setDoc } = window.FirestoreModule;
 
-            // 1. Sync Transactions
+            // Sync Transactions
             onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
               const txs = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
               if (prevTxCountRef.current !== null && txs.length > prevTxCountRef.current) {
@@ -235,7 +239,7 @@
               setTransactions(txs);
             });
 
-            // 2. Sync Settings
+            // Sync Settings
             const setupSettingsSync = async (docName, defaultData, setStateFunc) => {
               const ref = doc(window.db, 'settings', docName);
               onSnapshot(ref, async (docSnap) => {
@@ -280,17 +284,14 @@
         }
       };
 
-      // FULL RESET DATABASE (Transactions + Settings to Empty/Zero)
       const resetAllDataCloud = async () => {
         if (window.db && window.FirestoreModule) {
           const { collection, getDocs, doc, deleteDoc, setDoc } = window.FirestoreModule;
           
-          // Hapus semua transaksi
           const querySnapshot = await getDocs(collection(window.db, 'transactions'));
           const deletes = querySnapshot.docs.map(d => deleteDoc(doc(window.db, 'transactions', d.id)));
           await Promise.all(deletes);
 
-          // Timpa ulang (reset) semua pengaturan ke bawaan pabrik (Kosong)
           await setDoc(doc(window.db, 'settings', 'accounts'), { items: DEFAULT_ACCOUNTS });
           await setDoc(doc(window.db, 'settings', 'incomeCats'), { items: DEFAULT_INCOME_CATS });
           await setDoc(doc(window.db, 'settings', 'expenseCats'), { items: DEFAULT_EXPENSE_CATS });
@@ -305,7 +306,6 @@
         alert(lang === 'id' ? 'Seluruh database berhasil direset ke pengaturan awal (kosong)!' : 'Database successfully reset to empty default settings!');
       };
 
-      // Kalkulasi Saldo
       const calculatedAccounts = useMemo(() => {
         return accounts.map(acc => {
           let balance = 0;
@@ -330,9 +330,20 @@
         return sum + transactions.filter(t => t.type === 'Goal' && t.goalId === g.id).reduce((s, t) => s + Number(t.amount), 0);
       }, 0);
 
-      const totalBudgetLimit = budgets.reduce((sum, b) => sum + (Number(b.limit) || 0), 0);
-      const totalBillsAmount = bills.reduce((sum, bl) => sum + (Number(bl.amount) || 0), 0);
-      const estimatedTotal = totalLiquidBalance - totalBudgetLimit - totalBillsAmount;
+      // Sisa Anggaran (Remaining Budget)
+      const totalRemainingBudget = budgets.reduce((sum, b) => {
+        const spentThisCycle = transactions.filter(tx => tx.date && tx.date >= `${currentCyclePrefix}-10` && tx.type === 'Expense' && tx.category === b.category).reduce((s, tx) => s + Number(tx.amount), 0);
+        const remaining = Number(b.limit) - spentThisCycle;
+        return sum + (remaining > 0 ? remaining : 0);
+      }, 0);
+
+      // Sisa Tagihan (Unpaid Bills)
+      const totalUnpaidBills = bills.reduce((sum, bl) => {
+        const isPaid = transactions.find(t => t.type === 'Bill' && t.billId === bl.id && t.date >= `${currentCyclePrefix}-10`);
+        return sum + (isPaid ? 0 : Number(bl.amount));
+      }, 0);
+
+      const estimatedTotal = totalLiquidBalance - totalRemainingBudget - totalUnpaidBills;
 
       const overviewTx = transactions.filter(tx => tx.date && tx.date.startsWith(currentCyclePrefix));
       const overviewInc = overviewTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -381,11 +392,11 @@
                     <div className="flex flex-col gap-1 pt-1 border-t border-black/5 dark:border-white/5 text-[11px] font-semibold opacity-75">
                       <div className="flex justify-between">
                         <span>{t.totalBudget}:</span>
-                        <span className="font-bold">{formatRp(totalBudgetLimit)}</span>
+                        <span className="font-bold">{formatRp(totalRemainingBudget)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>{t.totalBills}:</span>
-                        <span className="font-bold">{formatRp(totalBillsAmount)}</span>
+                        <span className="font-bold">{formatRp(totalUnpaidBills)}</span>
                       </div>
                     </div>
 
@@ -820,7 +831,7 @@
       const getIcon = (type) => {
         if (type === 'Bank') return 'account_balance';
         if (type === 'E-Wallet') return 'account_balance_wallet';
-        return 'payments'; // Cash
+        return 'payments';
       };
 
       const handleAdd = () => {
@@ -949,9 +960,6 @@
       const [displayAmount, setDisplayAmount] = useState(formatNumberInput(initialRaw));
       const [accountId, setAccountId] = useState(accounts[0]?.id || '');
       const [category, setCategory] = useState(prefill?.category || expenseCats[0] || 'Lainnya');
-      const [investmentId, setInvestmentId] = useState(prefill?.investmentId || investments[0]?.id || '');
-      const [goalId, setGoalId] = useState(prefill?.goalId || goals[0]?.id || '');
-      const [billId, setBillId] = useState(prefill?.billId || bills[0]?.id || '');
       const [desc, setDesc] = useState(prefill?.desc || '');
       const [isScanning, setIsScanning] = useState(false);
 
@@ -1120,14 +1128,17 @@
 
     ReactDOM.render(<App />, document.getElementById('root'));
   </script>
+
+  <!-- KODE REGISTRASI SERVICE WORKER UNTUK PWA -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('Service Worker Terdaftar!', reg))
-          .catch(err => console.error('Gagal daftar Service Worker', err));
+          .then(reg => console.log('Service Worker Terdaftar Sukses!', reg))
+          .catch(err => console.error('Gagal Mendaftarkan Service Worker', err));
       });
     }
   </script>
+
 </body>
 </html>
