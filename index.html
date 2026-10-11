@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Final 22.2 (PWA Edition)</title>
+  <title>OURFIN - Final 22.3 (PWA & Fix Text)</title>
   
   <!-- KODE PWA DIMULAI DARI SINI -->
   <link rel="manifest" href="manifest.json">
@@ -76,6 +76,7 @@
     const { useState, useMemo, useEffect, useRef } = React;
 
     // ----- KONFIGURASI API KEY GEMINI (UBAH DI SINI) -----
+    // TEMPEL API KEY ANDA MENGGANTIKAN TEKS DI BAWAH INI. JANGAN HAPUS TANDA KUTIPNYA.
     const GEMINI_API_KEY = "AQ.Ab8RN6JQkXpx4C6IrwcBnbbMJguKlTrgrrPeF_ENkUPbW0GHag"; 
     // -----------------------------------------------------
 
@@ -146,8 +147,8 @@
         manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Data Export',
         switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
         resetAll: 'Full Database Reset', confirmReset: 'WARNING! This will delete ALL transactions and reset wallets, categories, and plans to empty factory defaults. Continue?',
-        more: 'More', allActivity: 'All Activity Details', totalBudget: 'Budget Left', totalBills: 'Unpaid Bills', 
-        netEstimate: 'Net Estimate', cycleIn: 'Cycle In', cycleOut: 'Cycle Out', remaining: 'Remaining', collected: 'Collected',
+        more: 'More', allActivity: 'All Activity Details', totalBudget: 'Sisa Anggaran', totalBills: 'Sisa Tagihan', 
+        netEstimate: 'Estimasi Bersih', cycleIn: 'Cycle In', cycleOut: 'Cycle Out', remaining: 'Remaining', collected: 'Collected',
         paid: 'Paid', unpaid: 'Unpaid', detailTx: 'Transaction Detail', noHistory: 'No transaction history.', noWallets: 'No wallets yet. Add one now.',
         aiScanBtn: 'AI Receipt Scan'
       }
@@ -974,8 +975,8 @@
         const file = e.target.files[0];
         if (!file) return;
 
-        if (!GEMINI_API_KEY || GEMINI_API_KEY === "MASUKKAN_API_KEY_ANDA_DISINI") {
-          alert(lang === 'id' ? 'Silakan masukkan API Key Gemini di dalam kode HTML Anda (Variabel GEMINI_API_KEY) terlebih dahulu.' : 'Please insert your Gemini API Key into the HTML code (GEMINI_API_KEY variable) first.');
+        if (!GEMINI_API_KEY || GEMINI_API_KEY === "TEMPEL_API_KEY_ANDA_DI_SINI_JANGAN_HAPUS_TANDA_KUTIPNYA") {
+          alert(lang === 'id' ? 'Silakan masukkan API Key Gemini di dalam kode HTML Anda (Variabel GEMINI_API_KEY di baris 59) terlebih dahulu.' : 'Please insert your Gemini API Key into the HTML code (GEMINI_API_KEY variable on line 59) first.');
           return;
         }
 
