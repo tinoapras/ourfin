@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Full Cloud Sync & Notification 19.4</title>
+  <title>OURFIN - Full Cloud Sync & Notification 19.3</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -47,7 +47,8 @@
     }
   </script>
   <style>
-    body { margin: 0; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; }
+    body { margin: 0; background-color: #E5E5EA; font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
+    .dark body { background-color: #000000; }
     .bg-mesh {
       background-image: 
         radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.12) 0px, transparent 50%),
@@ -62,7 +63,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body class="bg-[#E5E5EA] bg-mesh text-[#1C1C1E] dark:bg-[#121212] dark:text-[#F2F2F7]">
+<body class="bg-mesh text-[#1C1C1E] dark:text-[#F2F2F7] transition-colors">
   <div id="root"></div>
 
   <script type="text/babel">
@@ -128,9 +129,8 @@
         switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
         timelineBar: 'Timeline Periode (Volume Bar)', allTimeAccumulation: 'Akumulasi Total Keseluruhan', pieChartTitle: 'Pie Chart Distribusi',
         resetAll: 'Reset Semua Data', confirmReset: 'Apakah Anda yakin ingin menghapus seluruh data transaksi?',
-        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', totalBudget: 'Total Anggaran', totalBills: 'Total Tagihan', 
-        netEstimate: 'Estimasi Bersih', cycleIn: 'Masuk Siklus', cycleOut: 'Keluar Siklus', remaining: 'Sisa', collected: 'Terkumpul',
-        paid: 'Lunas', unpaid: 'Belum', detailTx: 'Detail Transaksi', noHistory: 'Belum ada riwayat transaksi.', newWallet: 'Dompet Baru'
+        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail',
+        month: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] 
       },
       en: { 
         welcome: 'Welcome', switch: 'Switch', overview: 'Overview', planning: 'Planning', report: 'Reports', settings: 'Settings', 
@@ -141,19 +141,13 @@
         switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
         timelineBar: 'Period Timeline (Volume Bar)', allTimeAccumulation: 'Total All-Time Accumulation', pieChartTitle: 'Pie Chart Distribution',
         resetAll: 'Reset All Data', confirmReset: 'Are you sure you want to delete all transaction data?',
-        more: 'More', allActivity: 'All Activity Details', totalBudget: 'Total Budget', totalBills: 'Total Bills', 
-        netEstimate: 'Net Estimate', cycleIn: 'Cycle In', cycleOut: 'Cycle Out', remaining: 'Remaining', collected: 'Collected',
-        paid: 'Paid', unpaid: 'Unpaid', detailTx: 'Transaction Detail', noHistory: 'No transaction history.', newWallet: 'New Wallet'
+        more: 'More', allActivity: 'All Activity Details',
+        month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] 
       }
     };
 
-    const MONTH_NAMES = {
-      id: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-    };
-
     function App() {
-      const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark') === 'true');
+      const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark'] === 'true');
       const [lang, setLang] = useState(() => localStorage.getItem('ourfin_lang') || 'id');
       
       const [activeUser, setActiveUser] = useState(() => {
@@ -173,22 +167,10 @@
 
       const prevTxCountRef = useRef(null);
 
-      // Sinkronisasi kelas dark mode ke dokumen HTML utama
-      useEffect(() => {
-        localStorage.setItem('ourfin_dark', isDark);
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }, [isDark]);
-
-      useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
-
       const requestNotifPermission = () => {
         if ('Notification' in window) {
           Notification.requestPermission().then(permission => {
-            if (permission === 'granted') alert(lang === 'id' ? 'Notifikasi aktif!' : 'Notifications enabled!');
+            if (permission === 'granted') alert('Notifikasi aktif!');
           });
         }
       };
@@ -219,6 +201,9 @@
       const [investments, setInvestments] = useState([]);
       const [transactions, setTransactions] = useState([]);
 
+      useEffect(() => { localStorage.setItem('ourfin_dark', isDark); }, [isDark]);
+      useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
+
       useEffect(() => {
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
@@ -232,7 +217,7 @@
                 if (latest && latest.creator !== activeUser.name) {
                   playNotificationSound();
                   if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`OURFIN: ${latest.creator}`, { body: `${latest.desc || latest.category}: ${formatRp(latest.amount)}` });
+                    new Notification(`OURFIN: Transaksi dari ${latest.creator}`, { body: `${latest.desc || latest.category}: ${formatRp(latest.amount)}` });
                   }
                 }
               }
@@ -265,7 +250,7 @@
             setupSettingsSync('goals', [{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }], setGoals);
             setupSettingsSync('bills', [{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }], setBills);
             setupSettingsSync('investments', [
-              { id: 'i1', name: 'Bibit Pasar Uang', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 }
+              { id: 'i1', name: 'Bibit Pasar Uang (Sucorinvest)', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 }
             ], setInvestments);
           }
         }, 300);
@@ -333,10 +318,7 @@
         return sum + (modalAmt * (1 + (inv.mockReturnPct / 100)));
       }, 0);
 
-      const totalGoalsSaved = goals.reduce((sum, g) => {
-        return sum + transactions.filter(t => t.type === 'Goal' && (t.goalId === g.id || t.category === g.name)).reduce((s, t) => s + t.amount, 0);
-      }, 0);
-
+      const totalGoalsSaved = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
       const totalBudgetLimit = budgets.reduce((sum, b) => sum + (b.limit || 0), 0);
       const totalBillsAmount = bills.reduce((sum, bl) => sum + (bl.amount || 0), 0);
       const estimatedTotal = totalLiquidBalance - totalBudgetLimit - totalBillsAmount;
@@ -368,6 +350,7 @@
       }, [reportExp, reportBills, reportGoals, reportInvest, lang]);
 
       const glassClass = isDark ? 'glass-dark' : 'glass';
+      useEffect(() => { document.body.className = isDark ? 'bg-[#121212] text-white' : 'bg-[#E5E5EA] bg-mesh text-[#1C1C1E]'; }, [isDark]);
 
       let cumulativePercent = 0;
       const donutData = reportDistribution.map(item => {
@@ -379,7 +362,7 @@
       });
 
       const exportCSV = () => {
-        if(transactions.length === 0) return alert(lang === 'id' ? 'Tidak ada data.' : 'No data available.');
+        if(transactions.length === 0) return alert('No data available.');
         const headers = ['ID', 'Type', 'Category', 'Description', 'Amount', 'Date', 'Wallet', 'Creator'];
         const rows = transactions.map(tx => {
           const accName = accounts.find(a => a.id === tx.accountId)?.name || '-';
@@ -431,27 +414,27 @@
 
                     <div className="flex flex-col gap-1 pt-1 border-t border-black/5 dark:border-white/5 text-[11px] font-semibold opacity-75">
                       <div className="flex justify-between">
-                        <span>{t.totalBudget}:</span>
+                        <span>Total Anggaran:</span>
                         <span className="font-bold">{formatRp(totalBudgetLimit)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>{t.totalBills}:</span>
+                        <span>Total Bills (Tagihan):</span>
                         <span className="font-bold">{formatRp(totalBillsAmount)}</span>
                       </div>
                     </div>
 
                     <div className="pt-2 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
-                      <span className="text-[10px] uppercase tracking-wider font-bold opacity-60">{t.netEstimate}:</span>
+                      <span className="text-[10px] uppercase tracking-wider font-bold opacity-60">Estimasi Bersih:</span>
                       <span className={`text-[13px] font-extrabold ${estimatedTotal < 0 ? 'text-expense' : 'text-accent'}`}>{formatRp(estimatedTotal)}</span>
                     </div>
                     
                     <div className="flex gap-3 pt-2 border-t border-black/5 dark:border-white/5">
                       <div className="flex-1">
-                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{t.cycleIn}</p>
+                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">Masuk Siklus</p>
                         <p className="font-extrabold text-[13px] text-income">{formatRp(overviewInc)}</p>
                       </div>
                       <div className="flex-1">
-                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{t.cycleOut}</p>
+                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">Keluar Siklus</p>
                         <p className="font-extrabold text-[13px] text-expense">{formatRp(overviewExp)}</p>
                       </div>
                     </div>
@@ -498,10 +481,12 @@
                     </div>
                     <div className={`${glassClass} rounded-[24px] p-2`}>
                       {transactions.length === 0 ? (
-                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{t.noHistory}</p>
+                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">Belum ada aktivitas transaksi.</p>
                       ) : (
-                        [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(tx => (
-                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: t.detailTx, type: 'Detail Transaksi', txs: [tx] })}>
+                        [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(tx => {
+                          const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
+                          return (
+                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: 'Detail Transaksi', type: 'Detail Transaksi', txs: [tx] })}>
                             <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center mr-3 shadow-sm flex-shrink-0
                               ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
                               <span className="material-symbols-rounded text-[20px]">{tx.icon}</span>
@@ -514,7 +499,7 @@
                               {tx.type === 'Income' ? '+' : '-'}{formatRp(tx.amount)}
                             </div>
                           </div>
-                        ))
+                        )})
                       )}
                     </div>
                   </div>
@@ -548,10 +533,10 @@
                           <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })}>
                             <div>
                               <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-expense">{b.icon}</span> {b.category}</h4>
-                              <p className="text-[11px] opacity-50 mt-1">{t.budget} (10-10): {formatRp(b.limit)}</p>
+                              <p className="text-[11px] opacity-50 mt-1">Budget (10-10): {formatRp(b.limit)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{t.remaining}</p>
+                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">Sisa</p>
                               <p className={`font-extrabold text-[14px] ${b.limit - spent < 0 ? 'text-expense' : ''}`}>{formatRp(b.limit - spent)}</p>
                             </div>
                           </div>
@@ -559,58 +544,58 @@
                             <div className={`h-full rounded-full transition-all duration-1000 ${pct > 90 ? 'bg-expense' : 'bg-accent'}`} style={{ width: `${pct}%` }}></div>
                           </div>
                           <button onClick={() => setTxPrefill({ type: 'Expense', category: b.category, amount: '', desc: `${b.category}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
-                            <span className="material-symbols-rounded text-sm">add_circle</span> {lang==='id'?'Bayar / Catat Pengeluaran':'Pay / Record Expense'}
+                            <span className="material-symbols-rounded text-sm">add_circle</span> Bayar / Catat Pengeluaran
                           </button>
                         </div>
                       )
                     })}
 
                     {planTab === 'Goals' && goals.map(g => {
-                      const saved = transactions.filter(t => t.type === 'Goal' && (t.goalId === g.id || t.category === g.name)).reduce((sum, t) => sum + t.amount, 0);
+                      const saved = transactions.filter(t => t.type === 'Goal' && t.category === g.name).reduce((sum, t) => sum + t.amount, 0);
                       const pct = Math.min(100, (saved / g.target) * 100);
                       return (
                         <div key={g.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
-                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && (t.goalId === g.id || t.category === g.name)) })}>
+                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.category===g.name) })}>
                             <div>
                               <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-accent">{g.icon}</span> {g.name}</h4>
                               <p className="text-[11px] opacity-50 mt-1">Target: {formatRp(g.target)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{t.collected}</p>
+                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">Terkumpul</p>
                               <p className="font-extrabold text-[14px] text-accent">{formatRp(saved)}</p>
                             </div>
                           </div>
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-accent transition-all duration-1000" style={{ width: `${pct}%` }}></div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, goalId: g.id, amount: '', desc: `Setor Target ${g.name}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
-                            <span className="material-symbols-rounded text-sm">savings</span> {lang==='id'?'Bayar / Tabung Target':'Save to Goal'}
+                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, amount: '', desc: `Setor Target ${g.name}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
+                            <span className="material-symbols-rounded text-sm">savings</span> Bayar / Tabung Target
                           </button>
                         </div>
                       )
                     })}
 
                     {planTab === 'Bills' && bills.map(bl => {
-                      const paidTx = transactions.find(t => t.type === 'Bill' && (t.billId === bl.id || t.category === bl.name) && t.date >= `${currentCyclePrefix}-10`);
+                      const paidTx = transactions.find(t => t.type === 'Bill' && t.category === bl.name && t.date >= `${currentCyclePrefix}-10`);
                       const isPaid = !!paidTx;
                       return (
                         <div key={bl.id} className={`${glassClass} p-5 rounded-[24px] flex items-center justify-between`}>
-                          <div className="flex items-center gap-3.5 cursor-pointer flex-1" onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && (t.billId === bl.id || t.category === bl.name)) })}>
+                          <div className="flex items-center gap-3.5 cursor-pointer flex-1" onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.category===bl.name) })}>
                             <div className="w-10 h-10 bg-warning/15 text-warning rounded-[16px] flex items-center justify-center flex-shrink-0">
                               <span className="material-symbols-rounded text-[20px]">{bl.icon}</span>
                             </div>
                             <div>
-                              <h4 className="font-bold text-[14px]">{bl.name} <span className="text-[10px] opacity-50">({MONTH_NAMES[lang][currentMonthIndex]} {currentYear})</span></h4>
+                              <h4 className="font-bold text-[14px]">{bl.name} <span className="text-[10px] opacity-50">({t.month[currentMonthIndex]} {currentYear})</span></h4>
                               <p className="text-[11px] opacity-50 mt-0.5">{formatRp(bl.amount)}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${isPaid ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>
-                              {isPaid ? t.paid : t.unpaid}
+                              {isPaid ? 'Lunas' : 'Belum'}
                             </span>
                             {!isPaid && (
-                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, billId: bl.id, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
-                                {lang==='id'?'Bayar':'Pay'}
+                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
+                                Bayar
                               </button>
                             )}
                           </div>
@@ -639,7 +624,7 @@
                             </div>
                           </div>
                           <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, investmentId: inv.id, amount: '', desc: `Top-up ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
-                            <span className="material-symbols-rounded text-sm">trending_up</span> {lang==='id'?'Bayar / Top-up Portofolio':'Pay / Top-up Portfolio'}
+                            <span className="material-symbols-rounded text-sm">trending_up</span> Bayar / Top-up Portofolio
                           </button>
                         </div>
                       )
@@ -658,18 +643,18 @@
                       <input type="number" value={reportYear} onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none" />
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-[13px] font-extrabold text-accent">{MONTH_NAMES[lang][reportMonthIndex]} {reportYear}</span>
+                      <span className="text-[13px] font-extrabold text-accent">{t.month[reportMonthIndex]} {reportYear}</span>
                     </div>
                     <input type="range" min="0" max="11" step="1" value={reportMonthIndex} onChange={(e) => setReportMonthIndex(Number(e.target.value))} className="w-full accent-accent cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none" />
                   </div>
 
                   <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
-                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{MONTH_NAMES[lang][reportMonthIndex]} {reportYear}</h3>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.income}</span><span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.expense}</span><span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.bills}</span><span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.savings}</span><span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.invest}</span><span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span></div>
+                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.month[reportMonthIndex]} {reportYear}</h3>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Pemasukan</span><span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Pengeluaran</span><span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Tagihan</span><span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Tabungan</span><span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Investasi</span><span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span></div>
                   </div>
                 </div>
               )}
@@ -720,9 +705,9 @@
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center`}>
                   <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-[32px]">{pendingUser.avatar}</div>
                   <h3 className="text-[18px] font-extrabold mb-1.5">{t.switchProfile}</h3>
-                  <p className="text-[12px] opacity-70 mb-6">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
+                  <p className="text-[12px] opacity-70 mb-6"><strong>{pendingUser.name}</strong>?</p>
                   <div className="flex gap-2.5">
-                    <button onClick={() => setPendingUser(null)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
+                    <button onClick={() => setPendingUser(null)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">Batal</button>
                     <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-3 bg-accent text-white rounded-[16px] font-bold text-[13px]">OK</button>
                   </div>
                 </div>
@@ -733,10 +718,10 @@
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center`}>
                   <div className="w-16 h-16 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-4"><span className="material-symbols-rounded text-[30px]">warning</span></div>
-                  <h3 className="text-[18px] font-extrabold mb-1.5">{t.resetAll}</h3>
+                  <h3 className="text-[18px] font-extrabold mb-1.5">Reset</h3>
                   <p className="text-[12px] opacity-70 mb-6">{t.confirmReset}</p>
                   <div className="flex gap-2.5">
-                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
+                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">Batal</button>
                     <button onClick={resetAllDataCloud} className="flex-1 py-3 bg-expense text-white rounded-[16px] font-bold text-[13px]">Reset</button>
                   </div>
                 </div>
@@ -769,7 +754,7 @@
                     <button onClick={() => setShowAllActivity(false)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
-                    {transactions.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">{t.noHistory}</p> :
+                    {transactions.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">Belum ada riwayat.</p> :
                       [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(tx => (
                         <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
                           <div className="truncate pr-3 flex-1">
@@ -814,11 +799,11 @@
                   {detailData.type !== 'Detail Transaksi' && (
                     <button onClick={() => { 
                       if(detailData.type==='Budget') saveCloudSettings('budgets', budgets.filter(b=>b.id !== detailData.item.id));
-                      if(detailData.type==='Goal') saveCloudSettings('goals', goals.filter(g=>g.id !== detailData.item.id));
-                      if(detailData.type==='Bill') saveCloudSettings('bills', bills.filter(bl=>bl.id !== detailData.item.id));
+                      if(detailData.type==='Goal') saveCloudSettings('goals', goals.filter(g=>g.name !== detailData.item.name));
+                      if(detailData.type==='Bill') saveCloudSettings('bills', bills.filter(bl=>bl.name !== detailData.item.name));
                       if(detailData.type==='Investasi') saveCloudSettings('investments', investments.filter(i=>i.id !== detailData.item.id));
                       setDetailData(null); 
-                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5">{t.delete} {detailData.type}</button>
+                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5">Hapus {detailData.type}</button>
                   )}
                 </div>
               </div>
@@ -953,8 +938,6 @@
       const [accountId, setAccountId] = useState(accounts[0]?.id || '');
       const [category, setCategory] = useState(prefill?.category || expenseCats[0] || 'Lainnya');
       const [investmentId, setInvestmentId] = useState(prefill?.investmentId || investments[0]?.id || '');
-      const [goalId, setGoalId] = useState(prefill?.goalId || goals[0]?.id || '');
-      const [billId, setBillId] = useState(prefill?.billId || bills[0]?.id || '');
       const [desc, setDesc] = useState(prefill?.desc || '');
 
       const handleAmountChange = (e) => {
@@ -970,26 +953,16 @@
         let icon = 'payments';
         let finalCat = category;
         let invId = null;
-        let gId = null;
-        let bId = null;
 
         if (type === 'Expense') icon = 'shopping_cart';
-        if (type === 'Goal') {
-          icon = 'shield';
-          const selectedGoal = goals.find(g => g.name === category);
-          if (selectedGoal) gId = selectedGoal.id;
-        }
-        if (type === 'Bill') {
-          icon = 'receipt_long';
-          const selectedBill = bills.find(b => b.name === category);
-          if (selectedBill) bId = selectedBill.id;
-        }
+        if (type === 'Goal') icon = 'shield';
+        if (type === 'Bill') icon = 'receipt_long';
         if (type === 'Investasi') {
           icon = 'trending_up';
           const selectedInv = investments.find(i => i.name === category);
           if (selectedInv) invId = selectedInv.id;
         }
-        onSave({ type, amount: num, accountId, category: finalCat, investmentId: invId, goalId: gId, billId: bId, desc, icon });
+        onSave({ type, amount: num, accountId, category: finalCat, investmentId: invId, desc, icon });
       };
 
       const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none appearance-none`;
@@ -1003,12 +976,7 @@
           
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {[ { id: 'Expense', label: t.expense, color: 'bg-expense' }, { id: 'Income', label: t.income, color: 'bg-income' }, { id: 'Goal', label: 'Goal', color: 'bg-accent' }, { id: 'Bill', label: 'Bills', color: 'bg-warning' }, { id: 'Investasi', label: 'Invest', color: 'bg-invest' }].map(tb => (
-              <button key={tb.id} onClick={() => { 
-                setType(tb.id); 
-                if(tb.id==='Investasi' && investments[0]) setCategory(investments[0].name);
-                if(tb.id==='Goal' && goals[0]) setCategory(goals[0].name);
-                if(tb.id==='Bill' && bills[0]) setCategory(bills[0].name);
-              }} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
+              <button key={tb.id} onClick={() => { setType(tb.id); if(tb.id==='Investasi' && investments[0]) setCategory(investments[0].name); }} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
                 {tb.label}
               </button>
             ))}
@@ -1021,12 +989,12 @@
 
           <div className="flex gap-3">
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.wallet}</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">Dompet</label>
               <select value={accountId} onChange={e => setAccountId(e.target.value)} className={inputClass}>{accounts.map(a => <option key={a.id} value={a.id} className="text-black">{a.name}</option>)}</select>
             </div>
             
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.category}</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">Kategori / Portofolio</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className={inputClass}>
                 {type === 'Expense' && expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 {type === 'Income' && incomeCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
@@ -1038,7 +1006,7 @@
           </div>
 
           <div>
-            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.note}</label>
+            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">Catatan</label>
             <input type="text" placeholder="..." value={desc} onChange={e => setDesc(e.target.value)} className={inputClass} />
           </div>
 
