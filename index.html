@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Full Cloud Sync & Notification 19.3</title>
+  <title>OURFIN - Full Cloud Sync & Notification 19.2</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -106,15 +106,17 @@
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
         gain.gain.setValueAtTime(0.15, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.4);
-      } catch (e) {}
+      } catch (e) {
+        console.log('Audio not allowed yet');
+      }
     };
 
     const COLORS = ['#34C759', '#FF3B30', '#FF9500', '#007AFF', '#AF52DE', '#5AC8FA']; 
@@ -129,7 +131,7 @@
         switchProfile: 'Ganti Profil?', confirmSwitch: 'Apakah Anda yakin ingin beralih mencatat transaksi sebagai',
         timelineBar: 'Timeline Periode (Volume Bar)', allTimeAccumulation: 'Akumulasi Total Keseluruhan', pieChartTitle: 'Pie Chart Distribusi',
         resetAll: 'Reset Semua Data', confirmReset: 'Apakah Anda yakin ingin menghapus seluruh data transaksi?',
-        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail',
+        more: 'Selengkapnya', allActivity: 'Semua Aktivitas Detail', notifPermission: 'Aktifkan Notifikasi HP',
         month: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] 
       },
       en: { 
@@ -141,13 +143,13 @@
         switchProfile: 'Switch Profile?', confirmSwitch: 'Are you sure you want to switch transaction logging to',
         timelineBar: 'Period Timeline (Volume Bar)', allTimeAccumulation: 'Total All-Time Accumulation', pieChartTitle: 'Pie Chart Distribution',
         resetAll: 'Reset All Data', confirmReset: 'Are you sure you want to delete all transaction data?',
-        more: 'More', allActivity: 'All Activity Details',
+        more: 'More', allActivity: 'All Activity Details', notifPermission: 'Enable Phone Notifications',
         month: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] 
       }
     };
 
     function App() {
-      const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark'] === 'true');
+      const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark') === 'true');
       const [lang, setLang] = useState(() => localStorage.getItem('ourfin_lang') || 'id');
       
       const [activeUser, setActiveUser] = useState(() => {
@@ -170,7 +172,9 @@
       const requestNotifPermission = () => {
         if ('Notification' in window) {
           Notification.requestPermission().then(permission => {
-            if (permission === 'granted') alert('Notifikasi aktif!');
+            if (permission === 'granted') {
+              alert('Notifikasi berhasil diaktifkan di perangkat ini!');
+            }
           });
         }
       };
@@ -184,7 +188,10 @@
       let cycleMonth = currentMonthIndex;
       if (currentDateNum < 10) {
         cycleMonth -= 1;
-        if (cycleMonth < 0) { cycleMonth = 11; cycleYear -= 1; }
+        if (cycleMonth < 0) {
+          cycleMonth = 11;
+          cycleYear -= 1;
+        }
       }
       const currentCyclePrefix = `${cycleYear}-${String(cycleMonth + 1).padStart(2, '0')}`;
 
@@ -192,6 +199,7 @@
       const [reportYear, setReportYear] = useState(currentYear);
       const reportYm = `${reportYear}-${String(reportMonthIndex + 1).padStart(2, '0')}`;
 
+      // --- FULL CLOUD FIREBASE STATES ---
       const [accounts, setAccounts] = useState([]);
       const [incomeCats, setIncomeCats] = useState([]);
       const [expenseCats, setExpenseCats] = useState([]);
@@ -204,6 +212,7 @@
       useEffect(() => { localStorage.setItem('ourfin_dark', isDark); }, [isDark]);
       useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
 
+      // --- REAL-TIME FIRESTORE SYNCHRONIZATION & PUSH NOTIFICATION ---
       useEffect(() => {
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
@@ -212,12 +221,17 @@
 
             onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
               const txs = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
+              
+              // Cek jika ada transaksi baru masuk dari perangkat lain
               if (prevTxCountRef.current !== null && txs.length > prevTxCountRef.current) {
                 const latest = [...txs].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
                 if (latest && latest.creator !== activeUser.name) {
                   playNotificationSound();
                   if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(`OURFIN: Transaksi dari ${latest.creator}`, { body: `${latest.desc || latest.category}: ${formatRp(latest.amount)}` });
+                    new Notification(`OURFIN: Transaksi Baru dari ${latest.creator}`, {
+                      body: `${latest.desc || latest.category}: ${formatRp(latest.amount)}`,
+                      icon: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+                    });
                   }
                 }
               }
@@ -250,7 +264,9 @@
             setupSettingsSync('goals', [{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }], setGoals);
             setupSettingsSync('bills', [{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }], setBills);
             setupSettingsSync('investments', [
-              { id: 'i1', name: 'Bibit Pasar Uang (Sucorinvest)', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 }
+              { id: 'i1', name: 'Bibit Pasar Uang (Sucorinvest)', type: 'Reksa Dana', icon: 'trending_up', mockReturnPct: 5.2 },
+              { id: 'i2', name: 'Saham BBCA (Bluechip)', type: 'Saham', icon: 'show_chart', mockReturnPct: 12.4 },
+              { id: 'i3', name: 'SBN ORI026 (Obligasi Negara)', type: 'Obligasi', icon: 'verified', mockReturnPct: 6.3 }
             ], setInvestments);
           }
         }, 300);
@@ -298,6 +314,7 @@
         setPendingUser(null);
       };
 
+      // --- FINANCIAL ENGINE ---
       const calculatedAccounts = useMemo(() => {
         return accounts.map(acc => {
           let balance = 0;
@@ -314,11 +331,12 @@
       const totalLiquidBalance = calculatedAccounts.reduce((sum, acc) => sum + acc.balance, 0);
       
       const totalInvestedMarket = investments.reduce((sum, inv) => {
-        const modalAmt = transactions.filter(t => t.type === 'Investasi' && (t.investmentId === inv.id || t.category === inv.name)).reduce((s, t) => s + t.amount, 0);
+        const modalAmt = transactions.filter(t => t.type === 'Investasi' && t.category === inv.name).reduce((s, t) => s + t.amount, 0);
         return sum + (modalAmt * (1 + (inv.mockReturnPct / 100)));
       }, 0);
 
       const totalGoalsSaved = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
+
       const totalBudgetLimit = budgets.reduce((sum, b) => sum + (b.limit || 0), 0);
       const totalBillsAmount = bills.reduce((sum, bl) => sum + (bl.amount || 0), 0);
       const estimatedTotal = totalLiquidBalance - totalBudgetLimit - totalBillsAmount;
@@ -382,15 +400,17 @@
         <div className="flex justify-center items-center min-h-screen w-full p-0 sm:p-4">
           <div className="w-full sm:max-w-[428px] h-screen sm:h-[880px] sm:rounded-[48px] sm:border-[8px] sm:border-[#2C2C2E] relative flex flex-col shadow-2xl overflow-hidden bg-[#F5F5F7] dark:bg-[#1C1C1E]">
             
+            {/* AREA KONTEN */}
             <div className="flex-1 overflow-y-auto px-6 pt-12 pb-36 no-scrollbar flex flex-col justify-start">
               
+              {/* HEADER */}
               <div className="pb-5 flex justify-between items-center z-10 flex-shrink-0">
                 <div>
                   <p className="text-[12px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
                   <h1 className="text-[24px] font-extrabold tracking-tight mt-0.5">{activeUser.name}</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={requestNotifPermission} className={`${glassClass} w-9 h-9 rounded-[16px] flex items-center justify-center text-accent shadow-sm hover:scale-105`} title="Notifikasi">
+                  <button onClick={requestNotifPermission} className={`${glassClass} w-9 h-9 rounded-[16px] flex items-center justify-center text-accent shadow-sm hover:scale-105`} title="Aktifkan Notifikasi">
                     <span className="material-symbols-rounded text-[18px]">notifications_active</span>
                   </button>
                   <button onClick={() => setPendingUser(activeUser.id === 'u1' ? { id: 'u2', name: 'Istri', avatar: '👩🏻' } : { id: 'u1', name: 'Suami', avatar: '👨🏻' })}
@@ -402,6 +422,7 @@
                 </div>
               </div>
 
+              {/* === OVERVIEW === */}
               {view === 'Overview' && (
                 <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
                   <div className={`${glassClass} rounded-[28px] p-6 relative overflow-hidden space-y-3`}>
@@ -430,11 +451,11 @@
                     
                     <div className="flex gap-3 pt-2 border-t border-black/5 dark:border-white/5">
                       <div className="flex-1">
-                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">Masuk Siklus</p>
+                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{lang==='id'?'Masuk Siklus':'Cycle In'}</p>
                         <p className="font-extrabold text-[13px] text-income">{formatRp(overviewInc)}</p>
                       </div>
                       <div className="flex-1">
-                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">Keluar Siklus</p>
+                        <p className="text-[9px] opacity-50 font-bold uppercase tracking-wider mb-0.5">{lang==='id'?'Keluar Siklus':'Cycle Out'}</p>
                         <p className="font-extrabold text-[13px] text-expense">{formatRp(overviewExp)}</p>
                       </div>
                     </div>
@@ -481,12 +502,12 @@
                     </div>
                     <div className={`${glassClass} rounded-[24px] p-2`}>
                       {transactions.length === 0 ? (
-                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">Belum ada aktivitas transaksi.</p>
+                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada aktivitas transaksi.':'No recent activity.'}</p>
                       ) : (
                         [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).map(tx => {
                           const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
                           return (
-                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: 'Detail Transaksi', type: 'Detail Transaksi', txs: [tx] })}>
+                          <div key={tx.docId || tx.id} className="flex items-center p-3.5 border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 rounded-[18px] transition cursor-pointer" onClick={() => setDetailData({ title: lang==='id'?'Detail Transaksi':'Transaction Detail', type: 'Detail Transaksi', txs: [tx] })}>
                             <div className={`w-10 h-10 rounded-[14px] flex items-center justify-center mr-3 shadow-sm flex-shrink-0
                               ${tx.type === 'Income' ? 'bg-income/15 text-income' : tx.type === 'Investasi' ? 'bg-invest/15 text-invest' : tx.type === 'Goal' ? 'bg-accent/15 text-accent' : 'bg-expense/15 text-expense'}`}>
                               <span className="material-symbols-rounded text-[20px]">{tx.icon}</span>
@@ -506,6 +527,7 @@
                 </div>
               )}
 
+              {/* === PERENCANAAN === */}
               {view === 'Planning' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <div className="flex justify-between items-center">
@@ -536,7 +558,7 @@
                               <p className="text-[11px] opacity-50 mt-1">Budget (10-10): {formatRp(b.limit)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">Sisa</p>
+                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Sisa':'Remaining'}</p>
                               <p className={`font-extrabold text-[14px] ${b.limit - spent < 0 ? 'text-expense' : ''}`}>{formatRp(b.limit - spent)}</p>
                             </div>
                           </div>
@@ -561,7 +583,7 @@
                               <p className="text-[11px] opacity-50 mt-1">Target: {formatRp(g.target)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">Terkumpul</p>
+                              <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Terkumpul':'Collected'}</p>
                               <p className="font-extrabold text-[14px] text-accent">{formatRp(saved)}</p>
                             </div>
                           </div>
@@ -591,7 +613,7 @@
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${isPaid ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>
-                              {isPaid ? 'Lunas' : 'Belum'}
+                              {isPaid ? (lang==='id'?'Lunas':'Paid') : (lang==='id'?'Belum':'Unpaid')}
                             </span>
                             {!isPaid && (
                               <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
@@ -604,18 +626,18 @@
                     })}
 
                     {planTab === 'Investasi' && investments.map(inv => {
-                      const modalAmt = transactions.filter(t => t.type === 'Investasi' && (t.investmentId === inv.id || t.category === inv.name)).reduce((sum, t) => sum + t.amount, 0);
+                      const modalAmt = transactions.filter(t => t.type === 'Investasi' && t.category === inv.name).reduce((sum, t) => sum + t.amount, 0);
                       const currentVal = modalAmt * (1 + (inv.mockReturnPct / 100));
                       const profit = currentVal - modalAmt;
                       return (
                         <div key={inv.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
-                          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && (t.investmentId === inv.id || t.category === inv.name)) })}>
+                          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.category===inv.name) })}>
                             <div className="w-12 h-12 bg-invest/10 text-invest rounded-[16px] flex items-center justify-center shadow-sm flex-shrink-0">
                                <span className="material-symbols-rounded text-[22px]">{inv.icon}</span>
                             </div>
                             <div className="flex-1 min-w-0 pr-1">
                               <h4 className="font-bold text-[14px] tracking-tight truncate">{inv.name}</h4>
-                              <p className="text-[10px] text-invest font-bold uppercase tracking-wider">{inv.type || 'Reksa Dana'} • Est. +{inv.mockReturnPct}%</p>
+                              <p className="text-[10px] text-invest font-bold uppercase tracking-wider">{inv.type} • Est. +{inv.mockReturnPct}%</p>
                               <p className="text-[11px] opacity-50 mt-0.5">Modal: {formatRp(modalAmt)}</p>
                             </div>
                             <div className="text-right whitespace-nowrap">
@@ -623,7 +645,7 @@
                               <div className="text-[10px] font-bold text-income mt-0.5">+{formatRp(profit)}</div>
                             </div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, investmentId: inv.id, amount: '', desc: `Top-up ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
+                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, amount: '', desc: `Top-up ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
                             <span className="material-symbols-rounded text-sm">trending_up</span> Bayar / Top-up Portofolio
                           </button>
                         </div>
@@ -633,32 +655,117 @@
                 </div>
               )}
 
+              {/* === REPORT DETAIL === */}
               {view === 'Report' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <h2 className="text-[24px] font-extrabold tracking-tight">{t.report}</h2>
                   
                   <div className={`${glassClass} p-5 rounded-[24px] space-y-3.5`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Timeline</span>
-                      <input type="number" value={reportYear} onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">{t.timelineBar}</span>
+                      <input 
+                        type="number" 
+                        value={reportYear} 
+                        onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} 
+                        className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none"
+                      />
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-[13px] font-extrabold text-accent">{t.month[reportMonthIndex]} {reportYear}</span>
                     </div>
-                    <input type="range" min="0" max="11" step="1" value={reportMonthIndex} onChange={(e) => setReportMonthIndex(Number(e.target.value))} className="w-full accent-accent cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none" />
+                    <input 
+                      type="range" min="0" max="11" step="1" 
+                      value={reportMonthIndex} 
+                      onChange={(e) => setReportMonthIndex(Number(e.target.value))}
+                      className="w-full accent-accent cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none"
+                    />
+                    <div className="flex justify-between text-[10px] font-bold opacity-40">
+                      <span>Jan</span>
+                      <span>Jun</span>
+                      <span>Dec</span>
+                    </div>
                   </div>
 
                   <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
                     <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.month[reportMonthIndex]} {reportYear}</h3>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Pemasukan</span><span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Pengeluaran</span><span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Tagihan</span><span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Tabungan</span><span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">Investasi</span><span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span></div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.income}</span>
+                      <span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.expense}</span>
+                      <span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.bills}</span>
+                      <span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.savings} (Goals)</span>
+                      <span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.invest}</span>
+                      <span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span>
+                    </div>
+                  </div>
+
+                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm`}>
+                    <h3 className="font-bold mb-5 text-[14px] tracking-tight text-center">{t.pieChartTitle}</h3>
+                    {reportDistribution.length === 0 ? (
+                      <p className="text-center text-[12px] opacity-50 py-5">{lang==='id'?'Data tidak tersedia.':'No data available.'}</p>
+                    ) : (
+                      <div className="flex flex-col items-center gap-5">
+                        <svg viewBox="0 0 32 32" className="w-28 h-28 transform -rotate-90 rounded-full drop-shadow-md">
+                          {donutData.map((d, i) => (
+                            <circle key={i} r="16" cx="16" cy="16" fill="transparent"
+                              stroke={d.color} strokeWidth="6" strokeDasharray={d.strokeDasharray} strokeDashoffset={d.strokeDashoffset}
+                              className="transition-all duration-1000"
+                            />
+                          ))}
+                        </svg>
+                        <div className="w-full space-y-2">
+                          {reportDistribution.map((item, i) => (
+                            <div key={i} className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2.5 rounded-xl">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: item.color}}></div>
+                                <span className="text-[12px] font-bold">{item.name}</span>
+                              </div>
+                              <span className="text-[11px] font-extrabold opacity-70">{reportInc > 0 ? Math.round((item.amount/reportInc)*100) : 0}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
+                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{t.allTimeAccumulation}</h3>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.income}</span>
+                      <span className="text-sm font-extrabold text-income">{formatRp(totalAllIncome)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.expense}</span>
+                      <span className="text-sm font-extrabold text-expense">{formatRp(totalAllExpense)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.bills}</span>
+                      <span className="text-sm font-extrabold text-warning">{formatRp(totalAllBills)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.savings} (Goals)</span>
+                      <span className="text-sm font-extrabold text-accent">{formatRp(totalAllGoals)}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl">
+                      <span className="text-xs font-bold opacity-70">{t.invest}</span>
+                      <span className="text-sm font-extrabold text-invest">{formatRp(totalAllInvest)}</span>
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* === SETTINGS === */}
               {view === 'Settings' && (
                 <div className="animate-[fadeIn_0.3s_ease] space-y-5">
                   <h2 className="text-[24px] font-extrabold tracking-tight">{t.settings}</h2>
@@ -666,26 +773,55 @@
                   <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm`}>
                     <div className="flex justify-between items-center p-5">
                       <span className="font-bold text-[14px]">{t.lang}</span>
-                      <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} className="bg-black/5 dark:bg-white/10 px-3.5 py-1.5 rounded-xl text-[12px] font-bold">{lang.toUpperCase()}</button>
+                      <button onClick={() => setLang(lang === 'id' ? 'en' : 'id')} className="bg-black/5 dark:bg-white/10 px-3.5 py-1.5 rounded-xl text-[12px] font-bold transition">
+                        {lang.toUpperCase()}
+                      </button>
                     </div>
                     <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
                     <div className="flex justify-between items-center p-5">
                       <span className="font-bold text-[14px]">{t.dark}</span>
-                      <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors ${isDark ? 'bg-income' : 'bg-black/10'}`}>
+                      <button onClick={() => setIsDark(!isDark)} className={`w-12 h-7 rounded-full p-1 transition-colors shadow-inner ${isDark ? 'bg-income' : 'bg-black/10'}`}>
                         <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${isDark ? 'translate-x-5' : ''}`}></div>
+                      </button>
+                    </div>
+                    <div className="w-full h-[1px] bg-black/5 dark:bg-white/5"></div>
+                    <div className="flex justify-between items-center p-5 cursor-pointer hover:bg-black/5 transition" onClick={() => setModal('ManageCategories')}>
+                      <span className="font-bold text-[14px]">{t.manageCat}</span>
+                      <span className="material-symbols-rounded opacity-50 text-[20px]">chevron_right</span>
+                    </div>
+                  </div>
+
+                  <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
+                    <h3 className="font-bold text-[11px] opacity-50 uppercase tracking-widest px-3 py-1.5">{t.exportData}</h3>
+                    <div className="space-y-1.5">
+                      <button onClick={exportCSV} className="w-full flex justify-between items-center bg-black/5 dark:bg-white/5 p-3.5 rounded-[16px] hover:bg-black/10 transition">
+                        <div className="flex items-center gap-2.5">
+                          <span className="material-symbols-rounded text-income text-[18px]">csv</span>
+                          <span className="font-bold text-[13px]">{t.exportCsv}</span>
+                        </div>
+                        <span className="material-symbols-rounded opacity-50 text-[18px]">download</span>
                       </button>
                     </div>
                   </div>
 
                   <div className={`${glassClass} rounded-[24px] overflow-hidden shadow-sm p-2.5`}>
-                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-3.5 rounded-[16px]">
-                      <div className="flex items-center gap-2.5"><span className="material-symbols-rounded text-[18px]">delete_forever</span><span className="font-bold text-[13px]">{t.resetAll}</span></div>
+                    <button onClick={() => setResetConfirm(true)} className="w-full flex justify-between items-center bg-expense/10 text-expense p-3.5 rounded-[16px] hover:bg-expense/20 transition">
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-rounded text-[18px]">delete_forever</span>
+                        <span className="font-bold text-[13px]">{t.resetAll}</span>
+                      </div>
+                      <span className="material-symbols-rounded opacity-50 text-[18px]">chevron_right</span>
                     </button>
+                  </div>
+                  
+                  <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
+                    OURFIN VERSION 19.2 FULL CLOUD SYNC & NOTIF
                   </div>
                 </div>
               )}
             </div>
 
+            {/* BOTTOM NAVIGATION (FIXED FLOATING RESPONSIF HP) */}
             <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-[390px] ${glassClass} rounded-[28px] py-3.5 px-6 flex justify-around items-center z-30 border border-white/40 shadow-[0_15px_35px_rgba(0,0,0,0.15)]`}>
               <NavBtn icon="space_dashboard" label="Home" active={view==='Overview'} onClick={() => setView('Overview')} />
               <NavBtn icon="pie_chart" label="Report" active={view==='Report'} onClick={() => setView('Report')} />
@@ -700,124 +836,190 @@
               <NavBtn icon="settings" label="Settings" active={view==='Settings'} onClick={() => setView('Settings')} />
             </div>
 
+            {/* --- MODALS --- */}
+
             {pendingUser && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center`}>
-                  <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-[32px]">{pendingUser.avatar}</div>
-                  <h3 className="text-[18px] font-extrabold mb-1.5">{t.switchProfile}</h3>
-                  <p className="text-[12px] opacity-70 mb-6"><strong>{pendingUser.name}</strong>?</p>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl flex flex-col text-center`}>
+                  <div className="w-16 h-16 bg-accent/10 text-accent rounded-full flex items-center justify-center mx-auto mb-4 text-[32px] shadow-sm">
+                    {pendingUser.avatar}
+                  </div>
+                  <h3 className="text-[18px] font-extrabold tracking-tight mb-1.5">{t.switchProfile}</h3>
+                  <p className="text-[12px] opacity-70 mb-6 leading-relaxed">{t.confirmSwitch} <strong>{pendingUser.name}</strong>?</p>
                   <div className="flex gap-2.5">
-                    <button onClick={() => setPendingUser(null)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">Batal</button>
-                    <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-3 bg-accent text-white rounded-[16px] font-bold text-[13px]">OK</button>
+                    <button onClick={() => setPendingUser(null)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
+                    <button onClick={() => handleSwitchUser(pendingUser)} className="flex-1 py-3 bg-accent text-white rounded-[16px] font-bold text-[13px] shadow-md">OK</button>
                   </div>
                 </div>
               </div>
             )}
 
             {resetConfirm && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center`}>
-                  <div className="w-16 h-16 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-4"><span className="material-symbols-rounded text-[30px]">warning</span></div>
-                  <h3 className="text-[18px] font-extrabold mb-1.5">Reset</h3>
-                  <p className="text-[12px] opacity-70 mb-6">{t.confirmReset}</p>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl flex flex-col text-center`}>
+                  <div className="w-16 h-16 bg-expense/10 text-expense rounded-full flex items-center justify-center mx-auto mb-4 text-[32px] shadow-sm">
+                    <span className="material-symbols-rounded text-[30px]">warning</span>
+                  </div>
+                  <h3 className="text-[18px] font-extrabold tracking-tight mb-1.5">{t.resetAll}</h3>
+                  <p className="text-[12px] opacity-70 mb-6 leading-relaxed">{t.confirmReset}</p>
                   <div className="flex gap-2.5">
-                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">Batal</button>
-                    <button onClick={resetAllDataCloud} className="flex-1 py-3 bg-expense text-white rounded-[16px] font-bold text-[13px]">Reset</button>
+                    <button onClick={() => setResetConfirm(false)} className="flex-1 py-3 bg-black/5 dark:bg-white/10 rounded-[16px] font-bold text-[13px]">{t.cancel}</button>
+                    <button onClick={resetAllDataCloud} className="flex-1 py-3 bg-expense text-white rounded-[16px] font-bold text-[13px] shadow-md">Reset</button>
                   </div>
                 </div>
               </div>
             )}
 
             {modal === 'ManageAccounts' && (
-              <ManageAccountsModal isDark={isDark} t={t} accounts={accounts} onClose={() => setModal(null)} onSave={(accs) => { saveCloudSettings('accounts', accs); setModal(null); }} />
+              <ManageAccountsModal 
+                isDark={isDark} t={t} accounts={accounts} 
+                onClose={() => setModal(null)} onSave={(accs) => { saveCloudSettings('accounts', accs); setModal(null); }} 
+              />
             )}
 
             {modal === 'AddPlan' && (
-              <AddPlanModal isDark={isDark} t={t} planTab={planTab} expenseCats={expenseCats} onClose={() => setModal(null)} onSave={(data) => {
-                if (planTab === 'Budget') saveCloudSettings('budgets', [...budgets, { id: 'b'+Date.now(), category: data.name, limit: data.val, icon: 'category' }]);
-                if (planTab === 'Goals') saveCloudSettings('goals', [...goals, { id: 'g'+Date.now(), name: data.name, target: data.val, icon: 'shield' }]);
-                if (planTab === 'Bills') saveCloudSettings('bills', [...bills, { id: 'bl'+Date.now(), name: data.name, amount: data.val, icon: 'receipt_long' }]);
-                if (planTab === 'Investasi') saveCloudSettings('investments', [...investments, { id: 'i'+Date.now(), name: data.name, type: data.subType, icon: 'trending_up', mockReturnPct: data.val }]);
-                setModal(null);
-              }} />
+              <AddPlanModal 
+                isDark={isDark} t={t} planTab={planTab} expenseCats={expenseCats}
+                onClose={() => setModal(null)} 
+                onSave={(data) => {
+                  if (planTab === 'Budget') {
+                    const updated = [...budgets, { id: 'b'+Date.now(), category: data.name, limit: data.val, icon: 'category' }];
+                    saveCloudSettings('budgets', updated);
+                  }
+                  if (planTab === 'Goals') {
+                    const updated = [...goals, { id: 'g'+Date.now(), name: data.name, target: data.val, icon: 'shield' }];
+                    saveCloudSettings('goals', updated);
+                  }
+                  if (planTab === 'Bills') {
+                    const updated = [...bills, { id: 'bl'+Date.now(), name: data.name, amount: data.val, icon: 'receipt_long' }];
+                    saveCloudSettings('bills', updated);
+                  }
+                  if (planTab === 'Investasi') {
+                    const updated = [...investments, { id: 'i'+Date.now(), name: data.name, type: data.subType || 'Reksa Dana', icon: 'trending_up', mockReturnPct: data.val }];
+                    saveCloudSettings('investments', updated);
+                  }
+                  setModal(null);
+                }}
+              />
             )}
 
             {modal === 'ManageCategories' && (
-              <ManageCategoriesModal isDark={isDark} t={t} incomeCats={incomeCats} expenseCats={expenseCats} onClose={() => setModal(null)} onSave={(inc, exp) => { saveCloudSettings('incomeCats', inc); saveCloudSettings('expenseCats', exp); setModal(null); }} />
+              <ManageCategoriesModal 
+                isDark={isDark} t={t} incomeCats={incomeCats} expenseCats={expenseCats}
+                onClose={() => setModal(null)} 
+                onSave={(inc, exp) => { 
+                  saveCloudSettings('incomeCats', inc);
+                  saveCloudSettings('expenseCats', exp);
+                  setModal(null); 
+                }}
+              />
             )}
 
+            {/* HALAMAN / MODAL SELENGKAPNYA AKTIVITAS */}
             {showAllActivity && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[360px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
                   <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-[18px] font-extrabold">{t.allActivity}</h2>
+                    <h2 className="text-[18px] font-extrabold tracking-tight">{t.allActivity}</h2>
                     <button onClick={() => setShowAllActivity(false)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
-                    {transactions.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">Belum ada riwayat.</p> :
-                      [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(tx => (
-                        <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
-                          <div className="truncate pr-3 flex-1">
-                            <p className="font-bold text-[13px] truncate">{tx.desc || tx.category}</p>
-                            <p className="text-[10px] opacity-50 mt-0.5">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
+                    {transactions.length === 0 ? (
+                      <p className="text-center opacity-50 py-12 text-[12px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No activity history.'}</p>
+                    ) : (
+                      [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(tx => {
+                        const accName = accounts.find(a=>a.id === tx.accountId)?.name || '-';
+                        return (
+                          <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
+                            <div className="truncate pr-3 flex-1">
+                              <p className="font-bold text-[13px] tracking-tight truncate">{tx.desc || tx.category}</p>
+                              <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{formatDetailedDateTime(tx.createdAt)} • {tx.creator} • {accName}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <p className={`font-extrabold text-[13px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
+                                {tx.type==='Income'?'+':'-'}{formatRp(tx.amount)}
+                              </p>
+                              <button onClick={() => deleteTransactionFromCloud(tx.docId)} className="text-expense bg-expense/10 p-1.5 rounded-lg hover:bg-expense/20 transition">
+                                <span className="material-symbols-rounded text-[14px]">delete</span>
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <p className={`font-extrabold text-[13px] ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
-                              {tx.type==='Income'?'+':'-'}{formatRp(tx.amount)}
-                            </p>
-                            <button onClick={() => deleteTransactionFromCloud(tx.docId)} className="text-expense bg-expense/10 p-1.5 rounded-lg"><span className="material-symbols-rounded text-[14px]">delete</span></button>
-                          </div>
-                        </div>
-                      ))
-                    }
+                        )
+                      })
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
             {detailData && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
                   <div className="flex justify-between items-center mb-5">
-                    <h2 className="text-[18px] font-extrabold truncate max-w-[75%]">{detailData.title}</h2>
+                    <h2 className="text-[18px] font-extrabold tracking-tight truncate max-w-[75%]">{detailData.title}</h2>
                     <button onClick={() => setDetailData(null)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
+                    {detailData.txs.length === 0 && <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang==='id'?'Belum ada riwayat transaksi.':'No transaction history.'}</p>}
                     {detailData.txs.map(tx => (
                       <div key={tx.docId || tx.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
                         <div className="truncate pr-3 flex-1">
-                          <p className="font-bold text-[13px] truncate">{tx.desc || tx.category}</p>
-                          <p className="text-[10px] opacity-50 mt-0.5">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
+                          <p className="font-bold text-[13px] tracking-tight truncate">{tx.desc || tx.category}</p>
+                          <p className="text-[10px] opacity-50 mt-0.5 font-semibold">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
                         </div>
                         <div className="flex items-center gap-2.5">
-                          <p className={`font-extrabold text-[13px] ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>{formatRp(tx.amount)}</p>
-                          {detailData.type === 'Detail Transaksi' && <button onClick={() => { deleteTransactionFromCloud(tx.docId); setDetailData(null); }} className="text-expense bg-expense/10 p-2 rounded-xl"><span className="material-symbols-rounded text-[16px]">delete</span></button>}
+                          <p className={`font-extrabold text-[13px] whitespace-nowrap ${tx.type==='Income'?'text-income':tx.type==='Goal'?'text-accent':tx.type==='Investasi'?'text-invest':tx.type==='Bill'?'text-warning':'text-expense'}`}>
+                            {formatRp(tx.amount)}
+                          </p>
+                          {detailData.type === 'Detail Transaksi' && (
+                            <button onClick={() => { deleteTransactionFromCloud(tx.docId); setDetailData(null); }} className="text-expense bg-expense/10 p-2 rounded-xl hover:bg-expense/20 transition">
+                              <span className="material-symbols-rounded text-[16px]">delete</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                   {detailData.type !== 'Detail Transaksi' && (
                     <button onClick={() => { 
-                      if(detailData.type==='Budget') saveCloudSettings('budgets', budgets.filter(b=>b.id !== detailData.item.id));
-                      if(detailData.type==='Goal') saveCloudSettings('goals', goals.filter(g=>g.name !== detailData.item.name));
-                      if(detailData.type==='Bill') saveCloudSettings('bills', bills.filter(bl=>bl.name !== detailData.item.name));
-                      if(detailData.type==='Investasi') saveCloudSettings('investments', investments.filter(i=>i.id !== detailData.item.id));
+                      if(detailData.type==='Budget') {
+                        const updated = budgets.filter(b=>b.id !== detailData.item.id);
+                        saveCloudSettings('budgets', updated);
+                      }
+                      if(detailData.type==='Goal') {
+                        const updated = goals.filter(g=>g.name !== detailData.item.name);
+                        saveCloudSettings('goals', updated);
+                      }
+                      if(detailData.type==='Bill') {
+                        const updated = bills.filter(bl=>bl.name !== detailData.item.name);
+                        saveCloudSettings('bills', updated);
+                      }
+                      if(detailData.type==='Investasi') {
+                        const updated = investments.filter(i=>i.name !== detailData.item.name);
+                        saveCloudSettings('investments', updated);
+                      }
                       setDetailData(null); 
-                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5">Hapus {detailData.type}</button>
+                    }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5 transition hover:bg-expense/20">{t.delete} {detailData.type}</button>
                   )}
                 </div>
               </div>
             )}
 
             {(modal === 'Transaction' || txPrefill) && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
-                  <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} prefill={txPrefill} onClose={() => { setModal(null); setTxPrefill(null); }} onSave={(tx) => { 
-                    const nowIso = new Date();
-                    const liveDateStr = `${nowIso.getFullYear()}-${String(nowIso.getMonth()+1).padStart(2,'0')}-${String(nowIso.getDate()).padStart(2,'0')}`;
-                    addTransactionToCloud({ ...tx, date: liveDateStr, creator: activeUser.name, createdAt: Date.now() }); 
-                    setModal(null); setTxPrefill(null);
-                  }} />
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
+                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl transition-colors`}>
+                  <FormTransaction 
+                    t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} 
+                    prefill={txPrefill}
+                    onClose={() => { setModal(null); setTxPrefill(null); }} 
+                    onSave={(tx) => { 
+                      const nowIso = new Date();
+                      const liveDateStr = `${nowIso.getFullYear()}-${String(nowIso.getMonth()+1).padStart(2,'0')}-${String(nowIso.getDate()).padStart(2,'0')}`;
+                      addTransactionToCloud({ ...tx, date: liveDateStr, creator: activeUser.name, createdAt: Date.now() }); 
+                      setModal(null); 
+                      setTxPrefill(null);
+                    }} 
+                  />
                 </div>
               </div>
             )}
@@ -838,22 +1040,33 @@
 
     function ManageAccountsModal({ isDark, t, accounts, onClose, onSave }) {
       const [localAccs, setLocalAccs] = useState([...accounts]);
+      const updateAccName = (id, val) => { setLocalAccs(localAccs.map(a => a.id === id ? { ...a, name: val } : a)); };
+      const addAcc = () => { setLocalAccs([...localAccs, { id: 'a'+Date.now(), name: 'New Wallet', type: 'Bank', owner: 'Shared', icon: 'account_balance' }]); };
+
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-[18px] font-extrabold">{t.manageWallet}</h2>
-              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
+              <h2 className="text-[18px] font-extrabold tracking-tight">{t.manageWallet}</h2>
+              <div className="flex gap-2">
+                <button onClick={addAcc} className="bg-accent/10 text-accent w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">add</span></button>
+                <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
               {localAccs.map(acc => (
                 <div key={acc.id} className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex items-center gap-3">
                   <span className="material-symbols-rounded text-accent bg-accent/10 p-2 rounded-[10px] text-[16px]">{acc.icon}</span>
-                  <input type="text" value={acc.name} onChange={e => setLocalAccs(localAccs.map(a => a.id === acc.id ? { ...a, name: e.target.value } : a))} className="w-full bg-transparent font-bold text-[14px] outline-none" />
+                  <div className="flex-1">
+                    <input type="text" value={acc.name} onChange={e => updateAccName(acc.id, e.target.value)} className="w-full bg-transparent font-bold text-[14px] outline-none" placeholder="Wallet Name" />
+                  </div>
+                  <button onClick={() => setLocalAccs(localAccs.filter(a => a.id !== acc.id))} className="text-expense opacity-50 hover:opacity-100">
+                    <span className="material-symbols-rounded text-[16px]">delete</span>
+                  </button>
                 </div>
               ))}
             </div>
-            <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5">{t.save}</button>
+            <button onClick={() => onSave(localAccs)} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-5 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
           </div>
         </div>
       );
@@ -866,11 +1079,17 @@
       const [displayVal, setDisplayVal] = useState('');
       const inputClass = `w-full ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[16px] p-3.5 text-[14px] font-bold outline-none appearance-none`;
 
+      const handleValChange = (e) => {
+        const clean = e.target.value.replace(/\D/g, '');
+        setVal(clean);
+        setDisplayVal(formatNumberInput(clean));
+      };
+
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end animate-[fadeIn_0.2s_ease]">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-[18px] font-extrabold">Add {planTab}</h2>
+              <h2 className="text-[18px] font-extrabold tracking-tight">Add {planTab}</h2>
               <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
             <div className="space-y-3.5">
@@ -879,8 +1098,9 @@
                   {expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 </select>
               ) : (
-                <input type="text" placeholder={planTab === 'Investasi' ? 'Nama Portofolio (cth: Tino)' : 'Name'} value={name} onChange={e => setName(e.target.value)} className={inputClass} />
+                <input type="text" placeholder={planTab === 'Investasi' ? 'Nama Produk (cth: SBN ORI026)' : 'Name'} value={name} onChange={e => setName(e.target.value)} className={inputClass} />
               )}
+
               {planTab === 'Investasi' && (
                 <select value={subType} onChange={e => setSubType(e.target.value)} className={inputClass}>
                   <option value="Reksa Dana">Reksa Dana</option>
@@ -888,8 +1108,10 @@
                   <option value="Obligasi">Obligasi / SBN</option>
                 </select>
               )}
-              <input type="text" placeholder={planTab === 'Investasi' ? 'Estimasi Return (%)' : 'Amount (Rp)'} value={planTab === 'Investasi' ? val : displayVal} onChange={planTab === 'Investasi' ? (e)=>setVal(e.target.value) : (e)=>{ const clean = e.target.value.replace(/\D/g, ''); setVal(clean); setDisplayVal(formatNumberInput(clean)); }} className={inputClass} />
-              <button onClick={() => { if(name && val) onSave({name, subType, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-3">{t.save}</button>
+
+              <input type="text" placeholder={planTab === 'Investasi' ? 'Estimasi Return (%)' : 'Amount (Rp)'} value={planTab === 'Investasi' ? val : displayVal} onChange={planTab === 'Investasi' ? (e)=>setVal(e.target.value) : handleValChange} className={inputClass} />
+              
+              <button onClick={() => { if(name && val) onSave({name, subType, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-3 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
             </div>
           </div>
         </div>
@@ -901,11 +1123,18 @@
       const [exp, setExp] = useState([...expenseCats]);
       const [newCat, setNewCat] = useState('');
       const [type, setType] = useState('Expense');
+      
+      const add = () => {
+        if(!newCat) return;
+        if(type==='Expense') setExp([...exp, newCat]); else setInc([...inc, newCat]);
+        setNewCat('');
+      }
+
       return (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease]">
           <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[340px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-[18px] font-extrabold">{t.manageCat}</h2>
+              <h2 className="text-[18px] font-extrabold tracking-tight">{t.manageCat}</h2>
               <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
             <div className="flex gap-2 mb-3.5">
@@ -913,14 +1142,14 @@
               <button onClick={() => setType('Income')} className={`flex-1 py-2 rounded-[12px] text-xs font-bold ${type==='Income' ? 'bg-income text-white' : 'bg-black/5 dark:bg-white/5'}`}>{t.income}</button>
             </div>
             <div className="flex gap-2 mb-3.5">
-              <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="Kategori baru..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-3.5 text-xs font-bold outline-none`} />
-              <button onClick={() => { if(newCat) { if(type==='Expense') setExp([...exp, newCat]); else setInc([...inc, newCat]); setNewCat(''); } }} className="bg-accent text-white px-3.5 py-2.5 rounded-[12px] font-bold text-sm">+</button>
+              <input type="text" value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="New category..." className={`flex-1 ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[12px] px-3.5 text-xs font-bold outline-none`} />
+              <button onClick={add} className="bg-accent text-white px-3.5 py-2.5 rounded-[12px] font-bold text-sm">+</button>
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2">
               {(type==='Expense'?exp:inc).map((c, i) => (
                 <div key={i} className="p-3 bg-black/5 dark:bg-white/5 rounded-[14px] flex justify-between items-center">
                   <span className="font-bold text-[13px]">{c}</span>
-                  <button onClick={() => type==='Expense' ? setExp(exp.filter(x=>x!==c)) : setInc(inc.filter(x=>x!==c))} className="text-expense"><span className="material-symbols-rounded text-[16px]">delete</span></button>
+                  <button onClick={() => type==='Expense' ? setExp(exp.filter(x=>x!==c)) : setInc(inc.filter(x=>x!==c))} className="text-expense opacity-50 hover:opacity-100"><span className="material-symbols-rounded text-[16px]">delete</span></button>
                 </div>
               ))}
             </div>
@@ -937,8 +1166,17 @@
       const [displayAmount, setDisplayAmount] = useState(formatNumberInput(initialRaw));
       const [accountId, setAccountId] = useState(accounts[0]?.id || '');
       const [category, setCategory] = useState(prefill?.category || expenseCats[0] || 'Lainnya');
-      const [investmentId, setInvestmentId] = useState(prefill?.investmentId || investments[0]?.id || '');
       const [desc, setDesc] = useState(prefill?.desc || '');
+
+      useEffect(() => {
+        if (!prefill) {
+          if(type === 'Expense') setCategory(expenseCats[0] || 'Lainnya');
+          if(type === 'Income') setCategory(incomeCats[0] || 'Gaji');
+          if(type === 'Goal') setCategory(goals[0]?.name || '');
+          if(type === 'Bill') setCategory(bills[0]?.name || '');
+          if(type === 'Investasi') setCategory(investments[0]?.name || '');
+        }
+      }, [type]);
 
       const handleAmountChange = (e) => {
         const val = e.target.value;
@@ -951,32 +1189,25 @@
         const num = parseFloat(rawAmount) || 0;
         if (num <= 0) return;
         let icon = 'payments';
-        let finalCat = category;
-        let invId = null;
-
         if (type === 'Expense') icon = 'shopping_cart';
         if (type === 'Goal') icon = 'shield';
         if (type === 'Bill') icon = 'receipt_long';
-        if (type === 'Investasi') {
-          icon = 'trending_up';
-          const selectedInv = investments.find(i => i.name === category);
-          if (selectedInv) invId = selectedInv.id;
-        }
-        onSave({ type, amount: num, accountId, category: finalCat, investmentId: invId, desc, icon });
+        if (type === 'Investasi') icon = 'trending_up';
+        onSave({ type, amount: num, accountId, category, desc, icon });
       };
 
-      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none appearance-none`;
+      const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none transition-all appearance-none`;
 
       return (
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-1">
-            <h2 className="text-[20px] font-extrabold">{t.addTx}</h2>
+            <h2 className="text-[20px] font-extrabold tracking-tight">{t.addTx}</h2>
             <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
           </div>
           
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {[ { id: 'Expense', label: t.expense, color: 'bg-expense' }, { id: 'Income', label: t.income, color: 'bg-income' }, { id: 'Goal', label: 'Goal', color: 'bg-accent' }, { id: 'Bill', label: 'Bills', color: 'bg-warning' }, { id: 'Investasi', label: 'Invest', color: 'bg-invest' }].map(tb => (
-              <button key={tb.id} onClick={() => { setType(tb.id); if(tb.id==='Investasi' && investments[0]) setCategory(investments[0].name); }} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
+              <button key={tb.id} onClick={() => setType(tb.id)} className={`px-3 py-2 rounded-[12px] text-[10px] font-bold whitespace-nowrap transition-all ${type === tb.id ? `${tb.color} text-white shadow-md` : 'bg-black/5 dark:bg-white/5 opacity-60'}`}>
                 {tb.label}
               </button>
             ))}
@@ -989,12 +1220,12 @@
 
           <div className="flex gap-3">
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">Dompet</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.wallet}</label>
               <select value={accountId} onChange={e => setAccountId(e.target.value)} className={inputClass}>{accounts.map(a => <option key={a.id} value={a.id} className="text-black">{a.name}</option>)}</select>
             </div>
             
             <div className="flex-1 relative">
-              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">Kategori / Portofolio</label>
+              <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.category}</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className={inputClass}>
                 {type === 'Expense' && expenseCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
                 {type === 'Income' && incomeCats.map(c => <option key={c} value={c} className="text-black">{c}</option>)}
@@ -1006,11 +1237,11 @@
           </div>
 
           <div>
-            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">Catatan</label>
+            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block tracking-widest">{t.note}</label>
             <input type="text" placeholder="..." value={desc} onChange={e => setDesc(e.target.value)} className={inputClass} />
           </div>
 
-          <button onClick={submit} className="w-full bg-accent text-white font-extrabold text-[15px] py-3.5 rounded-[16px] mt-1 shadow-[0_10px_24px_rgba(0,122,255,0.3)]">
+          <button onClick={submit} className="w-full bg-accent text-white font-extrabold text-[15px] py-3.5 rounded-[16px] mt-1 shadow-[0_10px_24px_rgba(0,122,255,0.3)] hover:scale-[1.02] transition-transform">
             {t.save}
           </button>
         </div>
