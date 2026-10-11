@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Cloud Sync 18.3</title>
+  <title>OURFIN - Full Cloud Sync 18.6</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,7 +12,7 @@
   <!-- Firebase App & Firestore SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     
     const firebaseConfig = {
       apiKey: "AIzaSyCBk_eKf3ZTSxjHJP19NraaAYPDrwK9Gw",
@@ -27,7 +27,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     window.db = db;
-    window.FirestoreModule = { collection, onSnapshot, addDoc, deleteDoc, doc, getDocs };
+    window.FirestoreModule = { collection, onSnapshot, addDoc, deleteDoc, doc, setDoc, getDocs };
   </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -70,6 +70,12 @@
     const { useState, useMemo, useEffect } = React;
 
     const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+    const formatNumberInput = (val) => {
+      if (!val) return '';
+      const cleanNum = val.toString().replace(/\D/g, '');
+      return cleanNum.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    };
+
     const COLORS = ['#34C759', '#FF3B30', '#FF9500', '#007AFF', '#AF52DE', '#5AC8FA']; 
 
     const dict = {
@@ -98,8 +104,8 @@
     };
 
     function App() {
-      const [isDark, setIsDark] = useState(false);
-      const [lang, setLang] = useState('id');
+      const [isDark, setIsDark] = useState(() => localStorage.getItem('ourfin_dark') === 'true');
+      const [lang, setLang] = useState(() => localStorage.getItem('ourfin_lang') || 'id');
       
       const [activeUser, setActiveUser] = useState(() => {
         const saved = localStorage.getItem('ourfin_active_user');
@@ -123,35 +129,69 @@
       const [reportYear, setReportYear] = useState(currentYear);
       const reportYm = `${reportYear}-${String(reportMonthIndex + 1).padStart(2, '0')}`;
 
-      // --- DATABASE STATE (FIREBASE REAL-TIME SYNC) ---
-      const [accounts, setAccounts] = useState([
-        { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance' },
-        { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance' },
-        { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet' },
-        { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments' }
-      ]);
-
-      const [incomeCats, setIncomeCats] = useState(['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya']);
-      const [expenseCats, setExpenseCats] = useState(['Groceries', 'Kebutuhan Pokok', 'Keinginan', 'Transport', 'Bayi & Anak', 'Listrik & Air']);
-
+      // --- FULL CLOUD FIREBASE STATES ---
+      const [accounts, setAccounts] = useState([]);
+      const [incomeCats, setIncomeCats] = useState([]);
+      const [expenseCats, setExpenseCats] = useState([]);
+      const [budgets, setBudgets] = useState([]);
+      const [goals, setGoals] = useState([]);
+      const [bills, setBills] = useState([]);
+      const [investments, setInvestments] = useState([]);
       const [transactions, setTransactions] = useState([]);
-      const [budgets, setBudgets] = useState([{ id: 'b1', category: 'Kebutuhan Pokok', limit: 3500000, icon: 'home' }]);
-      const [goals, setGoals] = useState([{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }]);
-      const [bills, setBills] = useState([{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }]);
-      const [investments, setInvestments] = useState([{ id: 'i1', name: 'Bibit Reksadana', icon: 'trending_up', mockReturnPct: 2.35 }]);
 
+      useEffect(() => { localStorage.setItem('ourfin_dark', isDark); }, [isDark]);
+      useEffect(() => { localStorage.setItem('ourfin_lang', lang); }, [lang]);
+
+      // --- REAL-TIME FIRESTORE SYNCHRONIZATION ---
       useEffect(() => {
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
             clearInterval(interval);
-            const { collection, onSnapshot } = window.FirestoreModule;
+            const { collection, onSnapshot, doc, setDoc, getDocs } = window.FirestoreModule;
+
+            // 1. Transactions Live Sync
             onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
-              const txs = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+              const txs = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
               setTransactions(txs);
             });
+
+            // Helper to setup settings sync with default fallback initialization
+            const setupSettingsSync = async (docName, defaultData, setStateFunc) => {
+              const ref = doc(window.db, 'settings', docName);
+              onSnapshot(ref, async (docSnap) => {
+                if (docSnap.exists()) {
+                  setStateFunc(docSnap.data().items);
+                } else {
+                  await setDoc(ref, { items: defaultData });
+                  setStateFunc(defaultData);
+                }
+              });
+            };
+
+            setupSettingsSync('accounts', [
+              { id: 'a1', name: 'BCA Tino', type: 'Bank', owner: 'Suami', icon: 'account_balance' },
+              { id: 'a2', name: 'Mandiri Ayu', type: 'Bank', owner: 'Istri', icon: 'account_balance' },
+              { id: 'a3', name: 'Bank Jago Ayu', type: 'E-Wallet', owner: 'Istri', icon: 'account_balance_wallet' },
+              { id: 'a4', name: 'Cash', type: 'Cash', owner: 'Bersama', icon: 'payments' }
+            ], setAccounts);
+
+            setupSettingsSync('incomeCats', ['Gaji', 'Bonus', 'Hasil Usaha', 'Lainnya'], setIncomeCats);
+            setupSettingsSync('expenseCats', ['Groceries', 'Kebutuhan Pokok', 'Keinginan', 'Transport', 'Bayi & Anak', 'Listrik & Air'], setExpenseCats);
+            setupSettingsSync('budgets', [{ id: 'b1', category: 'Kebutuhan Pokok', limit: 3500000, icon: 'home' }], setBudgets);
+            setupSettingsSync('goals', [{ id: 'g1', name: 'Dana Darurat', target: 20000000, icon: 'shield' }], setGoals);
+            setupSettingsSync('bills', [{ id: 'bl1', name: 'Listrik & WiFi', amount: 500000, icon: 'receipt_long' }], setBills);
+            setupSettingsSync('investments', [{ id: 'i1', name: 'Bibit Reksadana', icon: 'trending_up', mockReturnPct: 2.35 }], setInvestments);
           }
         }, 300);
       }, []);
+
+      // Cloud Save Actions for Master Settings
+      const saveCloudSettings = async (docName, itemsData) => {
+        if (window.db && window.FirestoreModule) {
+          const { doc, setDoc } = window.FirestoreModule;
+          await setDoc(doc(window.db, 'settings', docName), { items: itemsData });
+        }
+      };
 
       const addTransactionToCloud = async (newTx) => {
         if (window.db && window.FirestoreModule) {
@@ -268,26 +308,25 @@
 
       return (
         <div className="flex justify-center items-center min-h-screen w-full p-0 sm:p-4">
-          {/* LAYOUT CONTAINER: Mockup HP responsif di tengah untuk desktop, full screen untuk mobile */}
           <div className="w-full sm:max-w-[428px] h-screen sm:h-[880px] sm:rounded-[48px] sm:border-[8px] sm:border-[#2C2C2E] relative flex flex-col shadow-2xl overflow-hidden bg-[#F5F5F7] dark:bg-[#1C1C1E]">
             
-            {/* HEADER */}
-            <div className="px-6 pt-12 sm:pt-10 pb-4 flex justify-between items-center z-10 flex-shrink-0">
-              <div>
-                <p className="text-[12px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
-                <h1 className="text-[24px] font-extrabold tracking-tight mt-0.5">{activeUser.name}</h1>
-              </div>
-              <button onClick={() => setPendingUser(activeUser.id === 'u1' ? { id: 'u2', name: 'Istri', avatar: '👩🏻' } : { id: 'u1', name: 'Suami', avatar: '👨🏻' })}
-                className={`${glassClass} px-4 py-2 rounded-[18px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all`}
-              >
-                <span className="text-lg drop-shadow-sm">{activeUser.avatar}</span>
-                <span className="text-[12px] font-bold text-accent">{t.switch}</span>
-              </button>
-            </div>
-
-            {/* AREA KONTEN */}
-            <div className="flex-1 overflow-y-auto px-6 pb-36 no-scrollbar flex flex-col justify-start">
+            {/* AREA KONTEN (SCROLLABLE TERMASUK HEADER) */}
+            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-32 no-scrollbar flex flex-col justify-start">
               
+              {/* HEADER (TIDAK FIXED) */}
+              <div className="pb-5 flex justify-between items-center z-10 flex-shrink-0">
+                <div>
+                  <p className="text-[12px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
+                  <h1 className="text-[24px] font-extrabold tracking-tight mt-0.5">{activeUser.name}</h1>
+                </div>
+                <button onClick={() => setPendingUser(activeUser.id === 'u1' ? { id: 'u2', name: 'Istri', avatar: '👩🏻' } : { id: 'u1', name: 'Suami', avatar: '👨🏻' })}
+                  className={`${glassClass} px-4 py-2 rounded-[18px] flex items-center gap-2 hover:scale-105 active:scale-95 transition-all`}
+                >
+                  <span className="text-lg drop-shadow-sm">{activeUser.avatar}</span>
+                  <span className="text-[12px] font-bold text-accent">{t.switch}</span>
+                </button>
+              </div>
+
               {/* === OVERVIEW === */}
               {view === 'Overview' && (
                 <div className="space-y-6 animate-[fadeIn_0.3s_ease]">
@@ -640,19 +679,19 @@
                   </div>
                   
                   <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
-                    OURFIN VERSION 18.3 CLOUD SYNC
+                    OURFIN VERSION 18.6 FULL CLOUD SYNC
                   </div>
                 </div>
               )}
             </div>
 
-            {/* BOTTOM NAVIGATION */}
-            <div className={`absolute bottom-0 w-full ${glassClass} rounded-t-[36px] pb-7 pt-3.5 px-5 flex justify-around items-center z-20 border-t border-white/25 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]`}>
+            {/* BOTTOM NAVIGATION (FIXED FLOATING) */}
+            <div className={`absolute bottom-4 left-4 right-4 sm:left-6 sm:right-6 ${glassClass} rounded-[28px] py-3.5 px-6 flex justify-around items-center z-30 border border-white/40 shadow-[0_15px_35px_rgba(0,0,0,0.1)]`}>
               <NavBtn icon="space_dashboard" label="Home" active={view==='Overview'} onClick={() => setView('Overview')} />
               <NavBtn icon="pie_chart" label="Report" active={view==='Report'} onClick={() => setView('Report')} />
               
-              <div className="relative -top-7 z-10">
-                <button onClick={() => setModal('Transaction')} className="w-[58px] h-[58px] bg-gradient-to-tr from-accent to-[#5AC8FA] rounded-[20px] flex items-center justify-center text-white shadow-[0_10px_24px_rgba(0,122,255,0.4)] hover:scale-105 active:scale-95 transition-all rotate-45 hover:rotate-90 duration-300">
+              <div className="relative -top-6 z-10">
+                <button onClick={() => setModal('Transaction')} className="w-[56px] h-[56px] bg-gradient-to-tr from-accent to-[#5AC8FA] rounded-[20px] flex items-center justify-center text-white shadow-[0_10px_24px_rgba(0,122,255,0.4)] hover:scale-105 active:scale-95 transition-all rotate-45 hover:rotate-90 duration-300">
                   <span className="material-symbols-rounded text-[26px] font-bold -rotate-45 hover:-rotate-90 duration-300">add</span>
                 </button>
               </div>
@@ -698,7 +737,7 @@
             {modal === 'ManageAccounts' && (
               <ManageAccountsModal 
                 isDark={isDark} t={t} accounts={accounts} 
-                onClose={() => setModal(null)} onSave={(accs) => {setAccounts(accs); setModal(null);}} 
+                onClose={() => setModal(null)} onSave={(accs) => { saveCloudSettings('accounts', accs); setModal(null); }} 
               />
             )}
 
@@ -707,10 +746,22 @@
                 isDark={isDark} t={t} planTab={planTab} expenseCats={expenseCats}
                 onClose={() => setModal(null)} 
                 onSave={(data) => {
-                  if (planTab === 'Budget') setBudgets([...budgets, { id: 'b'+Date.now(), category: data.name, limit: data.val, icon: 'category' }]);
-                  if (planTab === 'Goals') setGoals([...goals, { id: 'g'+Date.now(), name: data.name, target: data.val, icon: 'shield' }]);
-                  if (planTab === 'Bills') setBills([...bills, { id: 'bl'+Date.now(), name: data.name, amount: data.val, icon: 'receipt_long' }]);
-                  if (planTab === 'Investasi') setInvestments([...investments, { id: 'i'+Date.now(), name: data.name, icon: 'trending_up', mockReturnPct: data.val }]);
+                  if (planTab === 'Budget') {
+                    const updated = [...budgets, { id: 'b'+Date.now(), category: data.name, limit: data.val, icon: 'category' }];
+                    saveCloudSettings('budgets', updated);
+                  }
+                  if (planTab === 'Goals') {
+                    const updated = [...goals, { id: 'g'+Date.now(), name: data.name, target: data.val, icon: 'shield' }];
+                    saveCloudSettings('goals', updated);
+                  }
+                  if (planTab === 'Bills') {
+                    const updated = [...bills, { id: 'bl'+Date.now(), name: data.name, amount: data.val, icon: 'receipt_long' }];
+                    saveCloudSettings('bills', updated);
+                  }
+                  if (planTab === 'Investasi') {
+                    const updated = [...investments, { id: 'i'+Date.now(), name: data.name, icon: 'trending_up', mockReturnPct: data.val }];
+                    saveCloudSettings('investments', updated);
+                  }
                   setModal(null);
                 }}
               />
@@ -720,7 +771,11 @@
               <ManageCategoriesModal 
                 isDark={isDark} t={t} incomeCats={incomeCats} expenseCats={expenseCats}
                 onClose={() => setModal(null)} 
-                onSave={(inc, exp) => { setIncomeCats(inc); setExpenseCats(exp); setModal(null); }}
+                onSave={(inc, exp) => { 
+                  saveCloudSettings('incomeCats', inc);
+                  saveCloudSettings('expenseCats', exp);
+                  setModal(null); 
+                }}
               />
             )}
 
@@ -754,10 +809,22 @@
                   </div>
                   {detailData.type !== 'Detail Transaksi' && (
                     <button onClick={() => { 
-                      if(detailData.type==='Budget') setBudgets(budgets.filter(b=>b.id !== detailData.item.id));
-                      if(detailData.type==='Goal') setGoals(goals.filter(g=>g.name !== detailData.item.name));
-                      if(detailData.type==='Bill') setBills(bills.filter(bl=>bl.name !== detailData.item.name));
-                      if(detailData.type==='Investasi') setInvestments(investments.filter(i=>i.name !== detailData.item.name));
+                      if(detailData.type==='Budget') {
+                        const updated = budgets.filter(b=>b.id !== detailData.item.id);
+                        saveCloudSettings('budgets', updated);
+                      }
+                      if(detailData.type==='Goal') {
+                        const updated = goals.filter(g=>g.name !== detailData.item.name);
+                        saveCloudSettings('goals', updated);
+                      }
+                      if(detailData.type==='Bill') {
+                        const updated = bills.filter(bl=>bl.name !== detailData.item.name);
+                        saveCloudSettings('bills', updated);
+                      }
+                      if(detailData.type==='Investasi') {
+                        const updated = investments.filter(i=>i.name !== detailData.item.name);
+                        saveCloudSettings('investments', updated);
+                      }
                       setDetailData(null); 
                     }} className="w-full bg-expense/10 text-expense font-extrabold text-[13px] py-3.5 rounded-[16px] mt-5 transition hover:bg-expense/20">{t.delete} {detailData.type}</button>
                   )}
@@ -769,7 +836,9 @@
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl transition-colors`}>
                   <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} onClose={() => setModal(null)} onSave={(tx) => { 
-                    addTransactionToCloud({ ...tx, date: `${reportYear}-${String(reportMonthIndex+1).padStart(2,'0')}-15`, creator: activeUser.name, createdAt: Date.now() }); 
+                    const nowIso = new Date();
+                    const liveDateStr = `${nowIso.getFullYear()}-${String(nowIso.getMonth()+1).padStart(2,'0')}-${String(nowIso.getDate()).padStart(2,'0')}`;
+                    addTransactionToCloud({ ...tx, date: liveDateStr, creator: activeUser.name, createdAt: Date.now() }); 
                     setModal(null); 
                   }} />
                 </div>
@@ -895,7 +964,8 @@
 
     function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, onClose, onSave }) {
       const [type, setType] = useState('Expense');
-      const [amount, setAmount] = useState('');
+      const [rawAmount, setRawAmount] = useState('');
+      const [displayAmount, setDisplayAmount] = useState('');
       const [accountId, setAccountId] = useState(accounts[0]?.id || '');
       const [category, setCategory] = useState(expenseCats[0] || 'Lainnya');
       const [desc, setDesc] = useState('');
@@ -908,14 +978,22 @@
         if(type === 'Investasi') setCategory(investments[0]?.name || '');
       }, [type]);
 
+      const handleAmountChange = (e) => {
+        const val = e.target.value;
+        const clean = val.replace(/\D/g, '');
+        setRawAmount(clean);
+        setDisplayAmount(formatNumberInput(clean));
+      };
+
       const submit = () => {
-        if (!amount || amount <= 0) return;
+        const num = parseFloat(rawAmount) || 0;
+        if (num <= 0) return;
         let icon = 'payments';
         if (type === 'Expense') icon = 'shopping_cart';
         if (type === 'Goal') icon = 'shield';
         if (type === 'Bill') icon = 'receipt_long';
         if (type === 'Investasi') icon = 'trending_up';
-        onSave({ type, amount: parseFloat(amount), accountId, category, desc, icon });
+        onSave({ type, amount: num, accountId, category, desc, icon });
       };
 
       const inputClass = `w-full ${isDark ? 'bg-black/20 text-white' : 'bg-[#F2F2F7] text-[#1C1C1E]'} border-none rounded-[16px] p-3.5 text-[13px] font-bold outline-none transition-all appearance-none`;
@@ -937,7 +1015,7 @@
 
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 font-extrabold text-[20px] opacity-40">Rp</span>
-            <input type="number" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)} className={`${inputClass} pl-12 text-[24px] py-4 font-extrabold`} />
+            <input type="text" placeholder="0" value={displayAmount} onChange={handleAmountChange} className={`${inputClass} pl-12 text-[24px] py-4 font-extrabold`} />
           </div>
 
           <div className="flex gap-3">
