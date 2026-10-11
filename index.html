@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Full Cloud Sync 18.6</title>
+  <title>OURFIN - Full Cloud Sync 18.7</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -118,12 +118,26 @@
       const [planTab, setPlanTab] = useState('Budget');
       const [modal, setModal] = useState(null); 
       const [detailData, setDetailData] = useState(null); 
+      const [txPrefill, setTxPrefill] = useState(null);
       const t = dict[lang];
 
-      const today = new Date();
-      const currentYear = today.getFullYear();
-      const currentMonthIndex = today.getMonth(); 
-      const currentYm = `${currentYear}-${String(currentMonthIndex+1).padStart(2, '0')}`;
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonthIndex = now.getMonth(); 
+      const currentDateNum = now.getDate();
+
+      // Siklus 10-10: Jika tanggal hari ini < 10, periode dimulai dari tgl 10 bulan lalu.
+      let cycleYear = currentYear;
+      let cycleMonth = currentMonthIndex;
+      if (currentDateNum < 10) {
+        cycleMonth -= 1;
+        if (cycleMonth < 0) {
+          cycleMonth = 11;
+          cycleYear -= 1;
+        }
+      }
+      const cycleYm = `${cycleYear}-${String(cycleMonth + 1).format ? String(cycleMonth + 1).padStart(2, '0') : String(cycleMonth + 1)}`;
+      const currentCyclePrefix = `${cycleYear}-${String(cycleMonth + 1).padStart(2, '0')}`;
 
       const [reportMonthIndex, setReportMonthIndex] = useState(currentMonthIndex);
       const [reportYear, setReportYear] = useState(currentYear);
@@ -147,15 +161,13 @@
         const interval = setInterval(() => {
           if (window.db && window.FirestoreModule) {
             clearInterval(interval);
-            const { collection, onSnapshot, doc, setDoc, getDocs } = window.FirestoreModule;
+            const { collection, onSnapshot, doc, setDoc } = window.FirestoreModule;
 
-            // 1. Transactions Live Sync
             onSnapshot(collection(window.db, 'transactions'), (snapshot) => {
               const txs = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
               setTransactions(txs);
             });
 
-            // Helper to setup settings sync with default fallback initialization
             const setupSettingsSync = async (docName, defaultData, setStateFunc) => {
               const ref = doc(window.db, 'settings', docName);
               onSnapshot(ref, async (docSnap) => {
@@ -185,7 +197,6 @@
         }, 300);
       }, []);
 
-      // Cloud Save Actions for Master Settings
       const saveCloudSettings = async (docName, itemsData) => {
         if (window.db && window.FirestoreModule) {
           const { doc, setDoc } = window.FirestoreModule;
@@ -251,7 +262,7 @@
 
       const totalGoalsSaved = transactions.filter(t => t.type === 'Goal').reduce((sum, t) => sum + t.amount, 0);
 
-      const overviewTx = transactions.filter(tx => tx.date && tx.date.startsWith(currentYm));
+      const overviewTx = transactions.filter(tx => tx.date && tx.date.startsWith(currentCyclePrefix));
       const overviewInc = overviewTx.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0);
       const overviewExp = overviewTx.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0);
 
@@ -310,10 +321,10 @@
         <div className="flex justify-center items-center min-h-screen w-full p-0 sm:p-4">
           <div className="w-full sm:max-w-[428px] h-screen sm:h-[880px] sm:rounded-[48px] sm:border-[8px] sm:border-[#2C2C2E] relative flex flex-col shadow-2xl overflow-hidden bg-[#F5F5F7] dark:bg-[#1C1C1E]">
             
-            {/* AREA KONTEN (SCROLLABLE TERMASUK HEADER) */}
+            {/* AREA KONTEN */}
             <div className="flex-1 overflow-y-auto px-6 pt-12 pb-32 no-scrollbar flex flex-col justify-start">
               
-              {/* HEADER (TIDAK FIXED) */}
+              {/* HEADER */}
               <div className="pb-5 flex justify-between items-center z-10 flex-shrink-0">
                 <div>
                   <p className="text-[12px] opacity-60 font-medium tracking-wide">{t.welcome},</p>
@@ -337,11 +348,11 @@
                     
                     <div className="flex gap-3 relative z-10 mb-4 border-b border-black/5 dark:border-white/5 pb-4">
                       <div className="flex-1">
-                        <p className="text-[10px] opacity-50 font-bold uppercase tracking-wider mb-1">{lang==='id'?'Masuk Bulan Ini':'Monthly Income'}</p>
+                        <p className="text-[10px] opacity-50 font-bold uppercase tracking-wider mb-1">{lang==='id'?'Masuk Siklus Ini':'Cycle Income'}</p>
                         <p className="font-extrabold text-[14px] text-income">{formatRp(overviewInc)}</p>
                       </div>
                       <div className="flex-1">
-                        <p className="text-[10px] opacity-50 font-bold uppercase tracking-wider mb-1">{lang==='id'?'Keluar Bulan Ini':'Monthly Expense'}</p>
+                        <p className="text-[10px] opacity-50 font-bold uppercase tracking-wider mb-1">{lang==='id'?'Keluar Siklus Ini':'Cycle Expense'}</p>
                         <p className="font-extrabold text-[14px] text-expense">{formatRp(overviewExp)}</p>
                       </div>
                     </div>
@@ -429,14 +440,14 @@
 
                   <div className="space-y-3.5">
                     {planTab === 'Budget' && budgets.map(b => {
-                      const spent = transactions.filter(tx => tx.date && tx.date.startsWith(currentYm) && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + tx.amount, 0);
+                      const spent = transactions.filter(tx => tx.date && tx.date >= `${currentCyclePrefix}-10` && tx.type === 'Expense' && tx.category === b.category).reduce((sum, tx) => sum + tx.amount, 0);
                       const pct = Math.min(100, (spent / b.limit) * 100);
                       return (
-                        <div key={b.id} onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform`}>
-                          <div className="flex justify-between items-end mb-3">
+                        <div key={b.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
+                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: transactions.filter(t => t.type==='Expense' && t.category===b.category) })}>
                             <div>
                               <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-expense">{b.icon}</span> {b.category}</h4>
-                              <p className="text-[11px] opacity-50 mt-1">{lang==='id'?'Anggaran':'Budget'}: {formatRp(b.limit)}</p>
+                              <p className="text-[11px] opacity-50 mt-1">Budget (10-10): {formatRp(b.limit)}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{lang==='id'?'Sisa':'Remaining'}</p>
@@ -446,6 +457,9 @@
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all duration-1000 ${pct > 90 ? 'bg-expense' : 'bg-accent'}`} style={{ width: `${pct}%` }}></div>
                           </div>
+                          <button onClick={() => setTxPrefill({ type: 'Expense', category: b.category, amount: '', desc: `${b.category}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
+                            <span className="material-symbols-rounded text-sm">add_circle</span> Bayar / Catat Pengeluaran
+                          </button>
                         </div>
                       )
                     })}
@@ -454,8 +468,8 @@
                       const saved = transactions.filter(t => t.type === 'Goal' && t.category === g.name).reduce((sum, t) => sum + t.amount, 0);
                       const pct = Math.min(100, (saved / g.target) * 100);
                       return (
-                        <div key={g.id} onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.category===g.name) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform`}>
-                          <div className="flex justify-between items-end mb-3">
+                        <div key={g.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
+                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: g.name, item: g, type: 'Goal', txs: transactions.filter(t => t.type==='Goal' && t.category===g.name) })}>
                             <div>
                               <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-accent">{g.icon}</span> {g.name}</h4>
                               <p className="text-[11px] opacity-50 mt-1">Target: {formatRp(g.target)}</p>
@@ -468,28 +482,37 @@
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-accent transition-all duration-1000" style={{ width: `${pct}%` }}></div>
                           </div>
+                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, amount: '', desc: `Setor Target ${g.name}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
+                            <span className="material-symbols-rounded text-sm">savings</span> Bayar / Tabung Target
+                          </button>
                         </div>
                       )
                     })}
 
                     {planTab === 'Bills' && bills.map(bl => {
-                      const paid = transactions.filter(t => t.type === 'Bill' && t.category === bl.name).reduce((sum, t) => sum + t.amount, 0);
-                      const isPaid = paid >= bl.amount;
+                      // Bills kereset tiap tanggal 10. Cek transaksi di siklus 10-10 ini.
+                      const paidTx = transactions.find(t => t.type === 'Bill' && t.category === bl.name && t.date >= `${currentCyclePrefix}-10`);
+                      const isPaid = !!paidTx;
                       return (
-                        <div key={bl.id} onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.category===bl.name) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform flex items-center justify-between`}>
-                          <div className="flex items-center gap-3.5">
+                        <div key={bl.id} className={`${glassClass} p-5 rounded-[24px] flex items-center justify-between`}>
+                          <div className="flex items-center gap-3.5 cursor-pointer flex-1" onClick={() => setDetailData({ title: bl.name, item: bl, type: 'Bill', txs: transactions.filter(t => t.type==='Bill' && t.category===bl.name) })}>
                             <div className="w-10 h-10 bg-warning/15 text-warning rounded-[16px] flex items-center justify-center flex-shrink-0">
                               <span className="material-symbols-rounded text-[20px]">{bl.icon}</span>
                             </div>
                             <div>
-                              <h4 className="font-bold text-[14px]">{bl.name}</h4>
-                              <p className="text-[11px] opacity-50 mt-0.5">{lang==='id'?'Nominal Tetap':'Fixed'}: {formatRp(bl.amount)}</p>
+                              <h4 className="font-bold text-[14px]">{bl.name} <span className="text-[10px] opacity-50">({t.month[currentMonthIndex]} {currentYear})</span></h4>
+                              <p className="text-[11px] opacity-50 mt-0.5">{formatRp(bl.amount)}</p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="flex items-center gap-2">
                             <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold ${isPaid ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>
                               {isPaid ? (lang==='id'?'Lunas':'Paid') : (lang==='id'?'Belum':'Unpaid')}
                             </span>
+                            {!isPaid && (
+                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
+                                Bayar
+                              </button>
+                            )}
                           </div>
                         </div>
                       )
@@ -500,18 +523,23 @@
                       const currentVal = modalAmt * (1 + (inv.mockReturnPct / 100));
                       const profit = currentVal - modalAmt;
                       return (
-                        <div key={inv.id} onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.category===inv.name) })} className={`${glassClass} p-5 rounded-[24px] cursor-pointer hover:scale-[1.02] transition-transform flex items-center gap-4`}>
-                          <div className="w-12 h-12 bg-invest/10 text-invest rounded-[16px] flex items-center justify-center shadow-sm flex-shrink-0">
-                             <span className="material-symbols-rounded text-[22px]">{inv.icon}</span>
+                        <div key={inv.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
+                          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setDetailData({ title: inv.name, item: inv, type: 'Investasi', txs: transactions.filter(t => t.type==='Investasi' && t.category===inv.name) })}>
+                            <div className="w-12 h-12 bg-invest/10 text-invest rounded-[16px] flex items-center justify-center shadow-sm flex-shrink-0">
+                               <span className="material-symbols-rounded text-[22px]">{inv.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0 pr-1">
+                              <h4 className="font-bold text-[14px] tracking-tight truncate">{inv.name}</h4>
+                              <p className="text-[11px] opacity-50 mt-0.5">Modal: {formatRp(modalAmt)}</p>
+                            </div>
+                            <div className="text-right whitespace-nowrap">
+                              <div className="font-extrabold text-[14px] text-invest">{formatRp(currentVal)}</div>
+                              <div className="text-[10px] font-bold text-income mt-0.5">+{formatRp(profit)} ({inv.mockReturnPct}%)</div>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0 pr-1">
-                            <h4 className="font-bold text-[14px] tracking-tight truncate">{inv.name}</h4>
-                            <p className="text-[11px] opacity-50 mt-0.5">Modal: {formatRp(modalAmt)}</p>
-                          </div>
-                          <div className="text-right whitespace-nowrap">
-                            <div className="font-extrabold text-[14px] text-invest">{formatRp(currentVal)}</div>
-                            <div className="text-[10px] font-bold text-income mt-0.5">+{formatRp(profit)} ({inv.mockReturnPct}%)</div>
-                          </div>
+                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, amount: '', desc: `Top-up Investasi ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
+                            <span className="material-symbols-rounded text-sm">trending_up</span> Bayar / Top-up Investasi
+                          </button>
                         </div>
                       )
                     })}
@@ -679,7 +707,7 @@
                   </div>
                   
                   <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
-                    OURFIN VERSION 18.6 FULL CLOUD SYNC
+                    OURFIN VERSION 18.7 FULL CLOUD SYNC
                   </div>
                 </div>
               )}
@@ -691,7 +719,7 @@
               <NavBtn icon="pie_chart" label="Report" active={view==='Report'} onClick={() => setView('Report')} />
               
               <div className="relative -top-6 z-10">
-                <button onClick={() => setModal('Transaction')} className="w-[56px] h-[56px] bg-gradient-to-tr from-accent to-[#5AC8FA] rounded-[20px] flex items-center justify-center text-white shadow-[0_10px_24px_rgba(0,122,255,0.4)] hover:scale-105 active:scale-95 transition-all rotate-45 hover:rotate-90 duration-300">
+                <button onClick={() => { setTxPrefill(null); setModal('Transaction'); }} className="w-[56px] h-[56px] bg-gradient-to-tr from-accent to-[#5AC8FA] rounded-[20px] flex items-center justify-center text-white shadow-[0_10px_24px_rgba(0,122,255,0.4)] hover:scale-105 active:scale-95 transition-all rotate-45 hover:rotate-90 duration-300">
                   <span className="material-symbols-rounded text-[26px] font-bold -rotate-45 hover:-rotate-90 duration-300">add</span>
                 </button>
               </div>
@@ -832,15 +860,21 @@
               </div>
             )}
 
-            {modal === 'Transaction' && (
+            {(modal === 'Transaction' || txPrefill) && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end animate-[fadeIn_0.2s_ease]">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl transition-colors`}>
-                  <FormTransaction t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} onClose={() => setModal(null)} onSave={(tx) => { 
-                    const nowIso = new Date();
-                    const liveDateStr = `${nowIso.getFullYear()}-${String(nowIso.getMonth()+1).padStart(2,'0')}-${String(nowIso.getDate()).padStart(2,'0')}`;
-                    addTransactionToCloud({ ...tx, date: liveDateStr, creator: activeUser.name, createdAt: Date.now() }); 
-                    setModal(null); 
-                  }} />
+                  <FormTransaction 
+                    t={t} isDark={isDark} accounts={accounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} 
+                    prefill={txPrefill}
+                    onClose={() => { setModal(null); setTxPrefill(null); }} 
+                    onSave={(tx) => { 
+                      const nowIso = new Date();
+                      const liveDateStr = `${nowIso.getFullYear()}-${String(nowIso.getMonth()+1).padStart(2,'0')}-${String(nowIso.getDate()).padStart(2,'0')}`;
+                      addTransactionToCloud({ ...tx, date: liveDateStr, creator: activeUser.name, createdAt: Date.now() }); 
+                      setModal(null); 
+                      setTxPrefill(null);
+                    }} 
+                  />
                 </div>
               </div>
             )}
@@ -896,7 +930,14 @@
     function AddPlanModal({ isDark, t, planTab, expenseCats, onClose, onSave }) {
       const [name, setName] = useState(planTab === 'Budget' ? expenseCats[0] : '');
       const [val, setVal] = useState('');
+      const [displayVal, setDisplayVal] = useState('');
       const inputClass = `w-full ${isDark?'bg-black/20':'bg-[#F2F2F7]'} rounded-[16px] p-3.5 text-[14px] font-bold outline-none appearance-none`;
+
+      const handleValChange = (e) => {
+        const clean = e.target.value.replace(/\D/g, '');
+        setVal(clean);
+        setDisplayVal(formatNumberInput(clean));
+      };
 
       return (
         <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end animate-[fadeIn_0.2s_ease]">
@@ -913,7 +954,7 @@
               ) : (
                 <input type="text" placeholder={`Name`} value={name} onChange={e => setName(e.target.value)} className={inputClass} />
               )}
-              <input type="number" placeholder={planTab === 'Investasi' ? 'Target Return (%)' : 'Amount (Rp)'} value={val} onChange={e => setVal(e.target.value)} className={inputClass} />
+              <input type="text" placeholder={planTab === 'Investasi' ? 'Target Return (%)' : 'Amount (Rp)'} value={planTab === 'Investasi' ? val : displayVal} onChange={planTab === 'Investasi' ? (e)=>setVal(e.target.value) : handleValChange} className={inputClass} />
               <button onClick={() => { if(name && val) onSave({name, val: parseFloat(val)}); }} className="w-full bg-accent text-white font-extrabold text-[14px] py-3.5 rounded-[16px] mt-3 shadow-[0_8px_24px_rgba(0,122,255,0.3)]">{t.save}</button>
             </div>
           </div>
@@ -962,20 +1003,23 @@
       );
     }
 
-    function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, onClose, onSave }) {
-      const [type, setType] = useState('Expense');
-      const [rawAmount, setRawAmount] = useState('');
-      const [displayAmount, setDisplayAmount] = useState('');
+    function FormTransaction({ t, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, onClose, onSave }) {
+      const [type, setType] = useState(prefill?.type || 'Expense');
+      const initialRaw = prefill?.amount ? String(prefill.amount) : '';
+      const [rawAmount, setRawAmount] = useState(initialRaw);
+      const [displayAmount, setDisplayAmount] = useState(formatNumberInput(initialRaw));
       const [accountId, setAccountId] = useState(accounts[0]?.id || '');
-      const [category, setCategory] = useState(expenseCats[0] || 'Lainnya');
-      const [desc, setDesc] = useState('');
+      const [category, setCategory] = useState(prefill?.category || expenseCats[0] || 'Lainnya');
+      const [desc, setDesc] = useState(prefill?.desc || '');
 
       useEffect(() => {
-        if(type === 'Expense') setCategory(expenseCats[0] || 'Lainnya');
-        if(type === 'Income') setCategory(incomeCats[0] || 'Gaji');
-        if(type === 'Goal') setCategory(goals[0]?.name || '');
-        if(type === 'Bill') setCategory(bills[0]?.name || '');
-        if(type === 'Investasi') setCategory(investments[0]?.name || '');
+        if (!prefill) {
+          if(type === 'Expense') setCategory(expenseCats[0] || 'Lainnya');
+          if(type === 'Income') setCategory(incomeCats[0] || 'Gaji');
+          if(type === 'Goal') setCategory(goals[0]?.name || '');
+          if(type === 'Bill') setCategory(bills[0]?.name || '');
+          if(type === 'Investasi') setCategory(investments[0]?.name || '');
+        }
       }, [type]);
 
       const handleAmountChange = (e) => {
