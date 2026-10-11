@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>OURFIN - Full Cloud Sync 18.7</title>
+  <title>OURFIN - Full Cloud Sync 18.8</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -56,8 +56,8 @@
         radial-gradient(at 100% 100%, rgba(175, 82, 222, 0.08) 0px, transparent 50%);
       background-attachment: fixed;
     }
-    .glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
-    .glass-dark { background: rgba(28, 28, 30, 0.75); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .glass { background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 10px 40px rgba(0,0,0,0.06); }
+    .glass-dark { background: rgba(28, 28, 30, 0.82); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
     .select-glass { appearance: none; background: rgba(255,255,255,0.5); backdrop-filter: blur(10px); border: 1px solid rgba(0,0,0,0.05); outline: none; }
     .dark .select-glass { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -126,7 +126,6 @@
       const currentMonthIndex = now.getMonth(); 
       const currentDateNum = now.getDate();
 
-      // Siklus 10-10: Jika tanggal hari ini < 10, periode dimulai dari tgl 10 bulan lalu.
       let cycleYear = currentYear;
       let cycleMonth = currentMonthIndex;
       if (currentDateNum < 10) {
@@ -136,7 +135,6 @@
           cycleYear -= 1;
         }
       }
-      const cycleYm = `${cycleYear}-${String(cycleMonth + 1).format ? String(cycleMonth + 1).padStart(2, '0') : String(cycleMonth + 1)}`;
       const currentCyclePrefix = `${cycleYear}-${String(cycleMonth + 1).padStart(2, '0')}`;
 
       const [reportMonthIndex, setReportMonthIndex] = useState(currentMonthIndex);
@@ -322,7 +320,7 @@
           <div className="w-full sm:max-w-[428px] h-screen sm:h-[880px] sm:rounded-[48px] sm:border-[8px] sm:border-[#2C2C2E] relative flex flex-col shadow-2xl overflow-hidden bg-[#F5F5F7] dark:bg-[#1C1C1E]">
             
             {/* AREA KONTEN */}
-            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-32 no-scrollbar flex flex-col justify-start">
+            <div className="flex-1 overflow-y-auto px-6 pt-12 pb-36 no-scrollbar flex flex-col justify-start">
               
               {/* HEADER */}
               <div className="pb-5 flex justify-between items-center z-10 flex-shrink-0">
@@ -490,7 +488,6 @@
                     })}
 
                     {planTab === 'Bills' && bills.map(bl => {
-                      // Bills kereset tiap tanggal 10. Cek transaksi di siklus 10-10 ini.
                       const paidTx = transactions.find(t => t.type === 'Bill' && t.category === bl.name && t.date >= `${currentCyclePrefix}-10`);
                       const isPaid = !!paidTx;
                       return (
@@ -707,14 +704,14 @@
                   </div>
                   
                   <div className="text-center opacity-40 text-[10px] font-bold tracking-widest mt-6">
-                    OURFIN VERSION 18.7 FULL CLOUD SYNC
+                    OURFIN VERSION 18.8 FULL CLOUD SYNC
                   </div>
                 </div>
               )}
             </div>
 
-            {/* BOTTOM NAVIGATION (FIXED FLOATING) */}
-            <div className={`absolute bottom-4 left-4 right-4 sm:left-6 sm:right-6 ${glassClass} rounded-[28px] py-3.5 px-6 flex justify-around items-center z-30 border border-white/40 shadow-[0_15px_35px_rgba(0,0,0,0.1)]`}>
+            {/* BOTTOM NAVIGATION (FIXED FLOATING RESPONSIF HP) */}
+            <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-[390px] ${glassClass} rounded-[28px] py-3.5 px-6 flex justify-around items-center z-30 border border-white/40 shadow-[0_15px_35px_rgba(0,0,0,0.15)]`}>
               <NavBtn icon="space_dashboard" label="Home" active={view==='Overview'} onClick={() => setView('Overview')} />
               <NavBtn icon="pie_chart" label="Report" active={view==='Report'} onClick={() => setView('Report')} />
               
