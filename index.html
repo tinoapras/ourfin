@@ -60,8 +60,8 @@
 
     // ================= KONFIGURASI SUPABASE (UBAH DI SINI) =================
     // Ambil dari Supabase Dashboard > Project Settings > API (atau "Connect").
-    const SUPABASE_URL = "https://ykggesdaahycypqbzhif.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_vjpBa6LgNyO09mIPfN2LTw_OneP5ojf";   // tempel lengkap hasil copy
+    const SUPABASE_URL = "https://PROJECT_ID.supabase.co";
+    const SUPABASE_KEY = "PASTE_PUBLISHABLE_ATAU_ANON_KEY_DI_SINI";
     // =======================================================================
 
     const isConfigured = !SUPABASE_URL.includes('PROJECT_ID') && !SUPABASE_KEY.startsWith('PASTE_');
@@ -126,7 +126,7 @@
     const dict = {
       id: {
         welcome: 'Selamat datang', switch: 'Ganti', overview: 'Ringkasan', planning: 'Perencanaan', report: 'Laporan', settings: 'Pengaturan',
-        liquid: 'Total Saldo Likuid', invest: 'Investasi', savings: 'Tabungan', accounts: 'Rekening & Dompet', recent: 'Aktivitas Terakhir',
+        liquid: 'Saldo Saat Ini (Likuid)', invest: 'Investasi', savings: 'Tabungan', accounts: 'Rekening & Dompet', recent: 'Aktivitas Terakhir',
         budget: 'Anggaran', goals: 'Target', bills: 'Tagihan (Bills)', lang: 'Bahasa', dark: 'Mode Gelap', addTx: 'Catat Transaksi', save: 'Simpan', cancel: 'Batal',
         expense: 'Pengeluaran', income: 'Pemasukan', note: 'Catatan', category: 'Kategori', wallet: 'Dompet', edit: 'Edit', delete: 'Hapus',
         manageWallet: 'Kelola Dompet', manageCat: 'Kelola Kategori', exportData: 'Ekspor Data (Backup JSON)',
@@ -145,7 +145,7 @@
       },
       en: {
         welcome: 'Welcome', switch: 'Switch', overview: 'Overview', planning: 'Planning', report: 'Reports', settings: 'Settings',
-        liquid: 'Total Liquid Balance', invest: 'Investments', savings: 'Savings', accounts: 'Accounts & Wallets', recent: 'Recent Activity',
+        liquid: 'Current Balance (Liquid)', invest: 'Investments', savings: 'Savings', accounts: 'Accounts & Wallets', recent: 'Recent Activity',
         budget: 'Budget', goals: 'Goals', bills: 'Bills', lang: 'Language', dark: 'Dark Mode', addTx: 'Add Transaction', save: 'Save', cancel: 'Cancel',
         expense: 'Expense', income: 'Income', note: 'Note', category: 'Category', wallet: 'Wallet', edit: 'Edit', delete: 'Delete',
         manageWallet: 'Manage Wallets', manageCat: 'Manage Categories', exportData: 'Export Data (JSON Backup)',
@@ -447,7 +447,7 @@
             </div>
             <div className="flex-1 min-w-0 pr-2">
               <h4 className="font-bold text-[13px] truncate tracking-tight mb-0.5">{txTitle(tx)}</h4>
-              <p className="text-[10px] opacity-50 truncate tracking-wide">{timeAgo(tx.createdAt, lang)} • {tx.creator}</p>
+              <p className="text-[10px] opacity-60 truncate tracking-wide flex items-center gap-1.5"><span className={`px-1.5 py-[1px] rounded-md text-[9px] font-bold flex-shrink-0 ${m.badge}`}>{tx.category}</span><span className="truncate">{fmtShortDate(tx.date)} • {tx.creator}</span></p>
             </div>
             <div className={`font-bold text-[14px] whitespace-nowrap ${tx.type === 'Income' || tx.type === 'Transfer' ? m.text : ''}`}>
               {m.sign}{formatRp(tx.amount)}
@@ -463,7 +463,7 @@
             <div className="truncate pr-3 flex-1">
               <p className="font-bold text-[13px] truncate">{txTitle(tx)}</p>
               {tx.type === 'Transfer' && tx.desc && <p className="text-[11px] opacity-60 truncate">{tx.desc}</p>}
-              <p className="text-[10px] opacity-50 mt-0.5">{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</p>
+              <p className="text-[10px] opacity-60 mt-0.5 flex items-center gap-1.5 flex-wrap"><span className={`px-1.5 py-[1px] rounded-md text-[9px] font-bold ${m.badge}`}>{tx.category}</span><span>{formatDetailedDateTime(tx.createdAt)} • {tx.creator}</span></p>
             </div>
             <div className="flex items-center gap-2">
               <p className={`font-extrabold text-[13px] ${m.text}`}>{m.sign}{formatRp(tx.amount)}</p>
@@ -514,9 +514,10 @@
                       <div className="flex justify-between"><span>{t.totalBills}:</span><span className="font-bold">{formatRp(totalUnpaidBills)}</span></div>
                     </div>
 
-                    <div className="pt-2 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
-                      <span className="text-[10px] uppercase tracking-wider font-bold opacity-60">{t.netEstimate}:</span>
-                      <span className={`text-[13px] font-extrabold ${estimatedTotal < 0 ? 'text-expense' : 'text-accent'}`}>{formatRp(estimatedTotal)}</span>
+                    <div className="rounded-2xl p-3 bg-accent/10">
+                      <p className="text-[9px] uppercase tracking-wider font-bold opacity-60">{lang === 'id' ? 'Sisa Bebas Jika Semua Anggaran & Tagihan Dibayar' : 'Free Cash After All Budgets & Bills Paid'}</p>
+                      <p className={`text-[20px] font-extrabold tracking-tight ${estimatedTotal < 0 ? 'text-expense' : 'text-accent'}`}>{formatRp(estimatedTotal)}</p>
+                      <p className="text-[9px] opacity-50 font-semibold mt-0.5">{lang === 'id' ? 'Saldo likuid − sisa anggaran − sisa tagihan' : 'Liquid balance − remaining budget − unpaid bills'}</p>
                     </div>
 
                     <div className="flex gap-3 pt-2 border-t border-black/5 dark:border-white/5">
@@ -631,7 +632,7 @@
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all duration-1000 ${pct > 90 ? 'bg-expense' : 'bg-accent'}`} style={{ width: `${pct}%` }}></div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Expense', category: b.category, amount: '', desc: `${b.category}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
+                          <button onClick={() => setTxPrefill({ type: 'Expense', category: b.category, amount: '', desc: '' })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
                             <span className="material-symbols-rounded text-sm">add_circle</span> {lang === 'id' ? 'Catat Pengeluaran' : 'Record Expense'}
                           </button>
                         </div>
@@ -657,7 +658,7 @@
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-accent transition-all duration-1000" style={{ width: `${pct}%` }}></div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, goalId: g.id, amount: '', desc: `Setor Target ${g.name}` })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
+                          <button onClick={() => setTxPrefill({ type: 'Goal', category: g.name, goalId: g.id, amount: '', desc: '' })} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl hover:bg-accent/20 transition flex items-center justify-center gap-1">
                             <span className="material-symbols-rounded text-sm">savings</span> {lang === 'id' ? 'Tabung Target' : 'Save to Goal'}
                           </button>
                         </div>
@@ -683,7 +684,7 @@
                               {isPaid ? t.paid : t.unpaid}
                             </span>
                             {!isPaid && (
-                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, billId: bl.id, amount: bl.amount, desc: `Bayar Tagihan ${bl.name}` })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
+                              <button onClick={() => setTxPrefill({ type: 'Bill', category: bl.name, billId: bl.id, amount: bl.amount, desc: '' })} className="px-3 py-1.5 bg-accent text-white rounded-xl text-xs font-bold shadow-sm">
                                 {lang === 'id' ? 'Bayar' : 'Pay'}
                               </button>
                             )}
@@ -713,7 +714,7 @@
                               <div className="text-[10px] font-bold text-income mt-0.5">+{formatRp(profit)}</div>
                             </div>
                           </div>
-                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, investmentId: inv.id, amount: '', desc: `Top-up ${inv.name}` })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
+                          <button onClick={() => setTxPrefill({ type: 'Investasi', category: inv.name, investmentId: inv.id, amount: '', desc: '' })} className="w-full py-2 bg-invest/10 text-invest font-bold text-xs rounded-xl hover:bg-invest/20 transition flex items-center justify-center gap-1">
                             <span className="material-symbols-rounded text-sm">trending_up</span> {lang === 'id' ? 'Top-up Portofolio' : 'Top-up Portfolio'}
                           </button>
                         </div>
@@ -724,30 +725,8 @@
               )}
 
               {view === 'Report' && (
-                <div className="animate-[fadeIn_0.3s_ease] space-y-5">
-                  <h2 className="text-[24px] font-extrabold tracking-tight">{t.report}</h2>
-
-                  <div className={`${glassClass} p-5 rounded-[24px] space-y-3.5`}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-65">Timeline</span>
-                      <input type="number" value={reportYear} onChange={(e) => setReportYear(Math.max(1970, Number(e.target.value)))} className="select-glass w-20 px-3 py-1 rounded-xl font-bold text-xs text-center outline-none" />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[13px] font-extrabold text-accent">{MONTH_NAMES[lang][reportMonthIndex]} {reportYear}</span>
-                    </div>
-                    <input type="range" min="0" max="11" step="1" value={reportMonthIndex} onChange={(e) => setReportMonthIndex(Number(e.target.value))} className="w-full accent-accent cursor-pointer h-2 bg-black/10 dark:bg-white/10 rounded-lg appearance-none" />
-                  </div>
-
-                  <div className={`${glassClass} p-6 rounded-[28px] shadow-sm space-y-3.5`}>
-                    <h3 className="font-bold text-[14px] tracking-tight text-center mb-3">{MONTH_NAMES[lang][reportMonthIndex]} {reportYear}</h3>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.income}</span><span className="text-sm font-extrabold text-income">{formatRp(reportInc)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.expense}</span><span className="text-sm font-extrabold text-expense">{formatRp(reportExp)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.bills}</span><span className="text-sm font-extrabold text-warning">{formatRp(reportBills)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.savings}</span><span className="text-sm font-extrabold text-accent">{formatRp(reportGoals)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.invest}</span><span className="text-sm font-extrabold text-invest">{formatRp(reportInvest)}</span></div>
-                    <div className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-2xl"><span className="text-xs font-bold opacity-70">{t.transfer} <span className="opacity-60">({lang === 'id' ? 'antar dompet' : 'between wallets'})</span></span><span className="text-sm font-extrabold text-transfer">{formatRp(reportTransfer)}</span></div>
-                  </div>
-                </div>
+                <ReportView lang={lang} glass={glassClass} transactions={transactions} accounts={accounts} budgets={budgets} goals={goals} bills={bills} investments={investments} now={now}
+                  snap={{ liquid: totalLiquidBalance, invest: totalInvestedMarket, goals: totalGoalsSaved, budget: totalRemainingBudget, bills: totalUnpaidBills, free: estimatedTotal, balances: Object.fromEntries(calculatedAccounts.map(a => [a.id, a.balance])) }} />
               )}
 
               {view === 'Settings' && (
@@ -880,19 +859,8 @@
             )}
 
             {showAllActivity && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[360px] max-h-[85%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-[18px] font-extrabold">{t.allActivity}</h2>
-                    <button onClick={() => setShowAllActivity(false)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
-                  </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
-                    {sortedTx.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">{t.noHistory}</p> :
-                      sortedTx.map(tx => <DetailRow key={tx.id} tx={tx} onDelete={() => deleteTransactionFromCloud(tx.id)} />)
-                    }
-                  </div>
-                </div>
-              </div>
+              <ActivityModal isDark={isDark} t={t} lang={lang} txs={sortedTx} onClose={() => setShowAllActivity(false)}
+                renderRow={(tx) => <DetailRow key={tx.id} tx={tx} onDelete={() => deleteTransactionFromCloud(tx.id)} />} />
             )}
 
             {detailData && (
@@ -941,6 +909,398 @@
             )}
 
           </div>
+        </div>
+      );
+    }
+
+    const fmtShortDate = (d) => { if (!d) return '-'; const [y, m, dd] = d.split('-'); return `${Number(dd)} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][Number(m) - 1]} ${y}`; };
+    const CHART_COLORS = ['#007AFF', '#FF9500', '#34C759', '#AF52DE', '#FF3B30', '#5AC8FA', '#FFCC00', '#FF2D55'];
+
+    function ActivityModal({ isDark, t, lang, txs, renderRow, onClose }) {
+      const [y, setY] = useState('');
+      const [m, setM] = useState('');
+      const [d, setD] = useState('');
+      const years = [...new Set(txs.map(x => (x.date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+      const filtered = txs.filter(x => { const [yy, mm, dd] = (x.date || '').split('-'); return (!y || yy === y) && (!m || mm === m) && (!d || dd === d); });
+      const shown = filtered.slice(0, 30);
+      const sel = `flex-1 min-w-0 ${isDark ? 'bg-black/30 text-white' : 'bg-[#F2F2F7]'} rounded-[12px] px-2 py-2 text-[11px] font-bold outline-none`;
+      return (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full max-w-[360px] max-h-[88%] rounded-[32px] p-6 shadow-2xl flex flex-col`}>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-[18px] font-extrabold">{t.allActivity}</h2>
+              <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
+            </div>
+            <div className="flex gap-2 mb-2">
+              <select value={d} onChange={e => setD(e.target.value)} className={sel}>
+                <option value="">{lang === 'id' ? 'Tgl' : 'Day'}</option>
+                {Array.from({ length: 31 }, (_, i) => <option key={i} value={pad2(i + 1)}>{i + 1}</option>)}
+              </select>
+              <select value={m} onChange={e => setM(e.target.value)} className={sel}>
+                <option value="">{lang === 'id' ? 'Bulan' : 'Month'}</option>
+                {MONTH_NAMES[lang].map((n, i) => <option key={i} value={pad2(i + 1)}>{n}</option>)}
+              </select>
+              <select value={y} onChange={e => setY(e.target.value)} className={sel}>
+                <option value="">{lang === 'id' ? 'Tahun' : 'Year'}</option>
+                {years.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div className="flex justify-between items-center mb-3 text-[10px] font-bold opacity-60">
+              <span>{lang === 'id' ? `Menampilkan ${shown.length} dari ${filtered.length}` : `Showing ${shown.length} of ${filtered.length}`}</span>
+              {(y || m || d) && <button onClick={() => { setY(''); setM(''); setD(''); }} className="text-accent">{lang === 'id' ? 'Reset filter' : 'Clear filter'}</button>}
+            </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
+              {shown.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">{t.noHistory}</p> : shown.map(renderRow)}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ReportView({ lang, glass, transactions, accounts, budgets, goals, bills, investments, snap, now }) {
+      const L = (id, en) => lang === 'id' ? id : en;
+      const MN = MONTH_NAMES[lang];
+      const [mode, setMode] = useState('month');
+      const [yr, setYr] = useState(now.getFullYear());
+      const [mo, setMo] = useState(now.getMonth());
+      const [showAll, setShowAll] = useState(false);
+
+      const step = (dir) => {
+        if (mode === 'year') { setYr(yr + dir); return; }
+        let m = mo + dir, y = yr;
+        if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; }
+        setMo(m); setYr(y);
+      };
+      const pref = (y, m) => mode === 'year' ? `${y}` : `${y}-${pad2(m + 1)}`;
+      const pv = mode === 'year' ? { y: yr - 1, m: mo } : (mo === 0 ? { y: yr - 1, m: 11 } : { y: yr, m: mo - 1 });
+      const inP = (p) => transactions.filter(tx => tx.date && tx.date.startsWith(p));
+      const cur = inP(pref(yr, mo));
+      const prev = inP(pref(pv.y, pv.m));
+      const sum = (arr, ty) => arr.filter(x => x.type === ty).reduce((s, x) => s + x.amount, 0);
+      const calc = (arr) => {
+        const inc = sum(arr, 'Income'), exp = sum(arr, 'Expense'), bl = sum(arr, 'Bill'), gl = sum(arr, 'Goal'), iv = sum(arr, 'Investasi');
+        const surplus = inc - exp - bl;
+        return { inc, exp, bl, gl, iv, surplus, net: surplus - gl - iv, rate: inc > 0 ? (surplus / inc) * 100 : 0 };
+      };
+      const c = calc(cur), p = calc(prev);
+      const out = c.exp + c.bl;
+      const label = mode === 'year' ? `${yr}` : `${MN[mo]} ${yr}`;
+      const prevLabel = mode === 'year' ? `${pv.y}` : `${MN[pv.m]} ${pv.y}`;
+
+      const daysN = mode === 'year' ? (yr === now.getFullYear() ? Math.max(1, Math.ceil((now - new Date(yr, 0, 1)) / 864e5)) : 365)
+        : (yr === now.getFullYear() && mo === now.getMonth() ? now.getDate() : new Date(yr, mo + 1, 0).getDate());
+
+      const Dl = (a, b, goodUp) => {
+        if (!b) return <span className="text-[9px] opacity-40 font-bold">—</span>;
+        const pct = ((a - b) / b) * 100;
+        const good = goodUp ? pct >= 0 : pct <= 0;
+        return <span className={`text-[10px] font-extrabold ${good ? 'text-income' : 'text-expense'}`}>{pct >= 0 ? '▲' : '▼'} {Math.abs(pct).toFixed(0)}%</span>;
+      };
+
+      // tren
+      const n = mode === 'year' ? 12 : new Date(yr, mo + 1, 0).getDate();
+      const series = Array.from({ length: n }, (_, i) => ({ i, inc: 0, out: 0 }));
+      cur.forEach(x => {
+        const s = series[mode === 'year' ? Number(x.date.slice(5, 7)) - 1 : Number(x.date.slice(8, 10)) - 1];
+        if (!s) return;
+        if (x.type === 'Income') s.inc += x.amount;
+        else if (x.type === 'Expense' || x.type === 'Bill') s.out += x.amount;
+      });
+      const maxV = Math.max(1, ...series.map(s => Math.max(s.inc, s.out)));
+      const peak = series.reduce((a, s) => s.out > a.out ? s : a, { out: 0, i: 0 });
+
+      // distribusi uang keluar
+      const groupOut = (arr) => {
+        const mp = {};
+        arr.forEach(x => {
+          const k = x.type === 'Expense' ? (x.category || '-') : x.type === 'Bill' ? L('Tagihan', 'Bills') : x.type === 'Goal' ? L('Tabungan Target', 'Goal Savings') : x.type === 'Investasi' ? L('Investasi', 'Investments') : null;
+          if (k) mp[k] = (mp[k] || 0) + x.amount;
+        });
+        return mp;
+      };
+      const curMap = groupOut(cur), prevMap = groupOut(prev);
+      const cats = Object.entries(curMap).map(([name, v]) => ({ name, v })).sort((a, b) => b.v - a.v);
+      const totalOut = cats.reduce((s, k) => s + k.v, 0);
+      const R = 40, CIRC = 2 * Math.PI * R;
+      let acc = 0;
+
+      // anggaran
+      const months = mode === 'year' ? (yr === now.getFullYear() ? now.getMonth() + 1 : 12) : 1;
+      const spentCat = (cat) => cur.filter(x => x.type === 'Expense' && x.category === cat).reduce((s, x) => s + x.amount, 0);
+
+      // dompet & pencatat
+      const walletFlow = accounts.map(a => {
+        let i = 0, o = 0;
+        cur.forEach(x => {
+          if (x.type === 'Transfer') { if (x.toAccountId === a.id) i += x.amount; if (x.accountId === a.id) o += x.amount; }
+          else if (x.accountId === a.id) { if (x.type === 'Income') i += x.amount; else o += x.amount; }
+        });
+        return { ...a, i, o };
+      });
+      const byUser = {};
+      cur.forEach(x => {
+        const u = byUser[x.creator] || (byUser[x.creator] = { inc: 0, out: 0 });
+        if (x.type === 'Income') u.inc += x.amount; else if (x.type === 'Expense' || x.type === 'Bill') u.out += x.amount;
+      });
+      const userMax = Math.max(1, ...Object.values(byUser).map(u => Math.max(u.inc, u.out)));
+
+      const top5 = cur.filter(x => x.type === 'Expense' || x.type === 'Bill').sort((a, b) => b.amount - a.amount).slice(0, 5);
+      const listTx = [...cur].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0));
+      const nm = (id) => accounts.find(a => a.id === id)?.name || '-';
+      const title = (x) => x.type === 'Transfer' ? `${nm(x.accountId)} → ${nm(x.toAccountId)}` : (x.desc || x.category);
+
+      // insight otomatis
+      const insights = [];
+      if (cats[0]) insights.push(L(`Pengeluaran terbesar: ${cats[0].name} (${(cats[0].v / totalOut * 100).toFixed(0)}% dari uang keluar).`, `Largest outflow: ${cats[0].name} (${(cats[0].v / totalOut * 100).toFixed(0)}%).`));
+      if (p.exp + p.bl > 0) { const d = ((out - (p.exp + p.bl)) / (p.exp + p.bl)) * 100; insights.push(L(`Pengeluaran ${d >= 0 ? 'naik' : 'turun'} ${Math.abs(d).toFixed(0)}% dibanding ${prevLabel}.`, `Spending ${d >= 0 ? 'up' : 'down'} ${Math.abs(d).toFixed(0)}% vs ${prevLabel}.`)); }
+      if (c.inc > 0) insights.push(c.rate >= 20 ? L(`Rasio tabungan ${c.rate.toFixed(0)}% — sehat (target ≥ 20%).`, `Savings rate ${c.rate.toFixed(0)}% — healthy (goal ≥ 20%).`) : c.rate >= 0 ? L(`Rasio tabungan ${c.rate.toFixed(0)}% — masih di bawah target 20%.`, `Savings rate ${c.rate.toFixed(0)}% — below the 20% goal.`) : L('Defisit: pengeluaran melebihi pemasukan periode ini.', 'Deficit: spending exceeded income this period.'));
+      if (peak.out > 0) insights.push(mode === 'year' ? L(`Bulan paling boros: ${MN[peak.i]} (${formatRp(peak.out)}).`, `Highest-spend month: ${MN[peak.i]} (${formatRp(peak.out)}).`) : L(`Hari paling boros: tanggal ${peak.i + 1} (${formatRp(peak.out)}).`, `Highest-spend day: the ${peak.i + 1}th (${formatRp(peak.out)}).`));
+      budgets.forEach(b => { const s = spentCat(b.category), lim = Number(b.limit) * months; if (lim > 0 && s > lim) insights.push(L(`Anggaran ${b.category} melebihi batas ${formatRp(s - lim)}.`, `${b.category} budget exceeded by ${formatRp(s - lim)}.`)); });
+
+      const exportCsv = () => {
+        const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+        const rows = [['Tanggal', 'Jenis', 'Kategori', 'Catatan', 'Dompet', 'Ke Dompet', 'Jumlah', 'Pencatat'], ...listTx.map(x => [x.date, x.type, x.category, x.desc, nm(x.accountId), x.toAccountId ? nm(x.toAccountId) : '', x.amount, x.creator])];
+        const blob = new Blob(['\ufeff' + rows.map(r => r.map(q).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = `ourfin-laporan-${pref(yr, mo)}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+      };
+
+      const Card = ({ icon, title: ttl, right, children }) => (
+        <div className={`${glass} rounded-[24px] p-5 space-y-3`}>
+          <div className="flex justify-between items-center">
+            <h3 className="font-extrabold text-[13px] tracking-tight flex items-center gap-1.5"><span className="material-symbols-rounded text-[17px] text-accent">{icon}</span>{ttl}</h3>
+            {right}
+          </div>
+          {children}
+        </div>
+      );
+      const Row = ({ l, v, cls = '', bold, sub }) => (
+        <div className={`flex justify-between items-center text-[12px] ${bold ? 'font-extrabold pt-2 border-t border-black/10 dark:border-white/10' : 'font-semibold'}`}>
+          <span className={bold ? '' : 'opacity-70'}>{l}{sub && <span className="block text-[9px] opacity-50 font-medium">{sub}</span>}</span>
+          <span className={`font-extrabold ${cls}`}>{v}</span>
+        </div>
+      );
+      const Bar = ({ pct, color }) => <div className="w-full bg-black/5 dark:bg-white/10 h-2 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, pct))}%`, background: color }}></div></div>;
+      const Chip = ({ type, children }) => <span className={`px-1.5 py-[1px] rounded-md text-[9px] font-bold ${txMeta(type).badge}`}>{children}</span>;
+
+      return (
+        <div className="animate-[fadeIn_0.3s_ease] space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-[24px] font-extrabold tracking-tight">{L('Laporan', 'Reports')}</h2>
+            <button onClick={exportCsv} className={`${glass} text-accent px-3 py-2 rounded-[12px] flex items-center gap-1 text-[11px] font-bold`}><span className="material-symbols-rounded text-[15px]">download</span>CSV</button>
+          </div>
+
+          <div className={`${glass} rounded-[24px] p-3 space-y-3`}>
+            <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-[16px]">
+              {[['month', L('Bulanan', 'Monthly')], ['year', L('Tahunan', 'Yearly')]].map(([k, lb]) => (
+                <button key={k} onClick={() => setMode(k)} className={`flex-1 py-2 text-[11px] font-bold rounded-[12px] transition ${mode === k ? 'bg-white dark:bg-[#2C2C2E] shadow-sm' : 'opacity-60'}`}>{lb}</button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between">
+              <button onClick={() => step(-1)} className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">chevron_left</span></button>
+              <div className="text-center"><p className="text-[16px] font-extrabold text-accent">{label}</p><p className="text-[9px] opacity-50 font-bold">{L('Dibanding', 'vs')} {prevLabel}</p></div>
+              <button onClick={() => step(1)} className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center"><span className="material-symbols-rounded text-[18px]">chevron_right</span></button>
+            </div>
+          </div>
+
+          <div className={`${glass} rounded-[28px] p-5 relative overflow-hidden`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-accent opacity-10 rounded-full blur-3xl -mr-8 -mt-8 pointer-events-none"></div>
+            <p className="text-[10px] uppercase tracking-widest opacity-60 font-bold">{L('Perubahan Kas Bersih', 'Net Cash Change')}</p>
+            <div className="flex items-end justify-between">
+              <h2 className={`text-[28px] font-extrabold tracking-tighter ${c.net < 0 ? 'text-expense' : 'text-income'}`}>{c.net >= 0 ? '+' : '-'}{formatRp(Math.abs(c.net))}</h2>
+              {Dl(c.net, p.net, true)}
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 mt-3">
+              {[
+                [L('Pemasukan', 'Income'), c.inc, p.inc, 'text-income', true],
+                [L('Pengeluaran + Tagihan', 'Spending + Bills'), out, p.exp + p.bl, 'text-expense', false],
+                [L('Surplus / Defisit', 'Surplus / Deficit'), c.surplus, p.surplus, c.surplus < 0 ? 'text-expense' : 'text-accent', true],
+                [L('Rasio Tabungan', 'Savings Rate'), null, null, c.rate >= 20 ? 'text-income' : c.rate >= 0 ? 'text-warning' : 'text-expense', true]
+              ].map(([lb, v, pvv, cls, up], i) => (
+                <div key={i} className="bg-black/5 dark:bg-white/5 rounded-2xl p-3">
+                  <p className="text-[9px] opacity-60 font-bold uppercase tracking-wide mb-0.5">{lb}</p>
+                  <p className={`text-[13px] font-extrabold ${cls}`}>{v === null ? `${c.rate.toFixed(1)}%` : formatRp(v)}</p>
+                  {v === null ? <span className="text-[9px] opacity-50 font-bold">{L('target ≥ 20%', 'goal ≥ 20%')}</span> : Dl(v, pvv, up)}
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between mt-3 text-[10px] font-bold opacity-70">
+              <span>{L('Rata-rata keluar/hari', 'Avg spend/day')}: {formatRp(out / daysN)}</span>
+              <span>{cur.length} {L('transaksi', 'txns')}</span>
+            </div>
+          </div>
+
+          {insights.length > 0 && (
+            <Card icon="lightbulb" title={L('Insight Otomatis', 'Auto Insights')}>
+              <ul className="space-y-1.5">{insights.map((s, i) => <li key={i} className="text-[11.5px] font-semibold opacity-80 flex gap-2"><span className="text-accent">•</span><span>{s}</span></li>)}</ul>
+            </Card>
+          )}
+
+          <Card icon="account_balance" title={L('Posisi Keuangan Saat Ini', 'Current Position')}>
+            <Row l={L('Saldo likuid', 'Liquid balance')} v={formatRp(snap.liquid)} />
+            <Row l={L('Investasi (estimasi)', 'Investments (est.)')} v={formatRp(snap.invest)} cls="text-invest" />
+            <Row l={L('Tabungan target', 'Goal savings')} v={formatRp(snap.goals)} cls="text-accent" />
+            <Row l={L('Sisa anggaran', 'Remaining budget')} v={`- ${formatRp(snap.budget)}`} cls="text-warning" />
+            <Row l={L('Sisa tagihan', 'Unpaid bills')} v={`- ${formatRp(snap.bills)}`} cls="text-warning" />
+            <Row bold l={L('Sisa bebas jika semua terbayar', 'Free cash after all paid')} sub={L('Saldo − sisa anggaran − sisa tagihan', 'Balance − budget left − bills due')} v={formatRp(snap.free)} cls={snap.free < 0 ? 'text-expense' : 'text-income'} />
+            <Row bold l={L('Total kekayaan bersih', 'Total net worth')} sub={L('Likuid + investasi + tabungan', 'Liquid + investments + goals')} v={formatRp(snap.liquid + snap.invest + snap.goals)} />
+          </Card>
+
+          <Card icon="receipt" title={L('Laporan Arus Kas', 'Cash Flow Statement')}>
+            <Row l={L('Pemasukan', 'Income')} v={formatRp(c.inc)} cls="text-income" />
+            <Row l={L('Pengeluaran', 'Expenses')} v={`- ${formatRp(c.exp)}`} cls="text-expense" />
+            <Row l={L('Tagihan', 'Bills')} v={`- ${formatRp(c.bl)}`} cls="text-warning" />
+            <Row bold l={L('Surplus / Defisit', 'Surplus / Deficit')} v={formatRp(c.surplus)} cls={c.surplus < 0 ? 'text-expense' : ''} />
+            <Row l={L('Setor tabungan target', 'Goal deposits')} v={`- ${formatRp(c.gl)}`} cls="text-accent" />
+            <Row l={L('Top-up investasi', 'Investment top-ups')} v={`- ${formatRp(c.iv)}`} cls="text-invest" />
+            <Row bold l={L('Perubahan Kas Bersih', 'Net Cash Change')} v={formatRp(c.net)} cls={c.net < 0 ? 'text-expense' : 'text-income'} />
+            <p className="text-[9px] opacity-50 font-medium">{L('Transfer antar dompet tidak dihitung (netral).', 'Wallet transfers are excluded (neutral).')}</p>
+          </Card>
+
+          <Card icon="bar_chart" title={mode === 'year' ? L('Tren Bulanan', 'Monthly Trend') : L('Tren Harian', 'Daily Trend')}
+            right={<div className="flex gap-2 text-[9px] font-bold opacity-70"><span className="flex items-center gap-1"><i className="w-2 h-2 rounded-sm inline-block" style={{ background: '#34C759' }}></i>{L('Masuk', 'In')}</span><span className="flex items-center gap-1"><i className="w-2 h-2 rounded-sm inline-block" style={{ background: '#FF3B30' }}></i>{L('Keluar', 'Out')}</span></div>}>
+            <svg viewBox="0 0 320 130" className="w-full">
+              <line x1="0" y1="110" x2="320" y2="110" stroke="currentColor" opacity="0.15" />
+              {series.map(s => {
+                const w = 320 / n, h1 = (s.inc / maxV) * 100, h2 = (s.out / maxV) * 100;
+                const show = mode === 'year' || s.i === 0 || (s.i + 1) % 5 === 0;
+                return (
+                  <g key={s.i}>
+                    <rect x={s.i * w + w * 0.1} y={110 - h1} width={w * 0.38} height={h1} rx="1.5" fill="#34C759" />
+                    <rect x={s.i * w + w * 0.5} y={110 - h2} width={w * 0.38} height={h2} rx="1.5" fill="#FF3B30" />
+                    {show && <text x={s.i * w + w / 2} y="124" fontSize="8" textAnchor="middle" fill="currentColor" opacity="0.5">{mode === 'year' ? MN[s.i].slice(0, 3) : s.i + 1}</text>}
+                  </g>
+                );
+              })}
+            </svg>
+          </Card>
+
+          <Card icon="donut_large" title={L('Distribusi Uang Keluar', 'Outflow Breakdown')}>
+            {cats.length === 0 ? <p className="text-center opacity-50 text-[12px] py-4">{L('Belum ada data.', 'No data.')}</p> : (
+              <>
+                <div className="flex justify-center">
+                  <svg viewBox="0 0 120 120" className="w-40 h-40">
+                    {cats.map((k, i) => { const len = (k.v / totalOut) * CIRC; const el = <circle key={k.name} cx="60" cy="60" r={R} fill="none" stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth="18" strokeDasharray={`${len} ${CIRC - len}`} strokeDashoffset={-acc} transform="rotate(-90 60 60)" />; acc += len; return el; })}
+                    <text x="60" y="57" textAnchor="middle" fontSize="7" fill="currentColor" opacity="0.5">TOTAL</text>
+                    <text x="60" y="69" textAnchor="middle" fontSize="9" fontWeight="800" fill="currentColor">{formatRp(totalOut)}</text>
+                  </svg>
+                </div>
+                <div className="space-y-2.5">
+                  {cats.map((k, i) => (
+                    <div key={k.name} className="space-y-1">
+                      <div className="flex justify-between items-center text-[12px]">
+                        <span className="font-bold flex items-center gap-1.5"><i className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}></i>{k.name}</span>
+                        <span className="font-extrabold">{formatRp(k.v)} <span className="opacity-50 text-[10px]">{(k.v / totalOut * 100).toFixed(0)}%</span> {Dl(k.v, prevMap[k.name], false)}</span>
+                      </div>
+                      <Bar pct={(k.v / totalOut) * 100} color={CHART_COLORS[i % CHART_COLORS.length]} />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </Card>
+
+          {budgets.length > 0 && (
+            <Card icon="speed" title={L('Anggaran vs Realisasi', 'Budget vs Actual')}>
+              {budgets.map(b => {
+                const s = spentCat(b.category), lim = Number(b.limit) * months, pct = lim > 0 ? (s / lim) * 100 : 0;
+                return (
+                  <div key={b.id} className="space-y-1">
+                    <div className="flex justify-between text-[12px]"><span className="font-bold">{b.category}</span><span className="font-extrabold">{formatRp(s)} <span className="opacity-50 text-[10px]">/ {formatRp(lim)}</span></span></div>
+                    <Bar pct={pct} color={pct > 100 ? '#FF3B30' : pct > 80 ? '#FF9500' : '#34C759'} />
+                    <p className={`text-[10px] font-bold ${lim - s < 0 ? 'text-expense' : 'opacity-50'}`}>{lim - s < 0 ? L('Lebih ', 'Over by ') : L('Sisa ', 'Left ')}{formatRp(Math.abs(lim - s))} • {pct.toFixed(0)}%</p>
+                  </div>
+                );
+              })}
+              <p className="text-[9px] opacity-50 font-medium">{L('Dihitung per bulan kalender.', 'Calculated per calendar month.')}</p>
+            </Card>
+          )}
+
+          <Card icon="account_balance_wallet" title={L('Arus Kas per Dompet', 'Cash Flow by Wallet')}>
+            {walletFlow.length === 0 ? <p className="text-center opacity-50 text-[12px]">-</p> : walletFlow.map(a => (
+              <div key={a.id} className="bg-black/5 dark:bg-white/5 rounded-2xl p-3 space-y-1">
+                <div className="flex justify-between text-[12px]"><span className="font-bold">{a.name}</span><span className="font-extrabold">{formatRp(snap.balances[a.id] || 0)}</span></div>
+                <div className="flex justify-between text-[10px] font-bold"><span className="text-income">▲ {formatRp(a.i)}</span><span className="text-expense">▼ {formatRp(a.o)}</span></div>
+              </div>
+            ))}
+          </Card>
+
+          {Object.keys(byUser).length > 0 && (
+            <Card icon="group" title={L('Per Pencatat', 'By Person')}>
+              {Object.entries(byUser).map(([u, v]) => (
+                <div key={u} className="space-y-1.5">
+                  <p className="text-[12px] font-bold">{u}</p>
+                  <div className="flex items-center gap-2 text-[10px] font-bold"><span className="w-14 text-income">{L('Masuk', 'In')}</span><div className="flex-1"><Bar pct={(v.inc / userMax) * 100} color="#34C759" /></div><span className="w-24 text-right">{formatRp(v.inc)}</span></div>
+                  <div className="flex items-center gap-2 text-[10px] font-bold"><span className="w-14 text-expense">{L('Keluar', 'Out')}</span><div className="flex-1"><Bar pct={(v.out / userMax) * 100} color="#FF3B30" /></div><span className="w-24 text-right">{formatRp(v.out)}</span></div>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {(goals.length > 0 || bills.length > 0) && (
+            <Card icon="flag" title={L('Target & Tagihan', 'Goals & Bills')}>
+              {goals.map(g => {
+                const saved = transactions.filter(x => x.type === 'Goal' && x.goalId === g.id).reduce((s, x) => s + x.amount, 0);
+                const add = cur.filter(x => x.type === 'Goal' && x.goalId === g.id).reduce((s, x) => s + x.amount, 0);
+                const pct = g.target > 0 ? (saved / g.target) * 100 : 0;
+                return (
+                  <div key={g.id} className="space-y-1">
+                    <div className="flex justify-between text-[12px]"><span className="font-bold">{g.name}</span><span className="font-extrabold text-accent">{formatRp(saved)} <span className="opacity-50 text-[10px]">/ {formatRp(g.target)}</span></span></div>
+                    <Bar pct={pct} color="#007AFF" />
+                    <p className="text-[10px] font-bold opacity-50">{pct.toFixed(0)}% • {L('periode ini', 'this period')} +{formatRp(add)}</p>
+                  </div>
+                );
+              })}
+              {bills.map(bl => {
+                const paid = cur.filter(x => x.type === 'Bill' && x.billId === bl.id);
+                const tot = paid.reduce((s, x) => s + x.amount, 0);
+                return (
+                  <div key={bl.id} className="flex justify-between items-center text-[12px]">
+                    <span className="font-bold">{bl.name} <span className="opacity-50 text-[10px]">{formatRp(bl.amount)}</span></span>
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold ${paid.length ? 'bg-income/15 text-income' : 'bg-warning/15 text-warning'}`}>{paid.length ? `${L('Dibayar', 'Paid')} ${paid.length}× • ${formatRp(tot)}` : L('Belum dibayar', 'Unpaid')}</span>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
+
+          {investments.length > 0 && (
+            <Card icon="trending_up" title={L('Portofolio Investasi', 'Investment Portfolio')}>
+              {investments.map(inv => {
+                const modal = transactions.filter(x => x.type === 'Investasi' && x.investmentId === inv.id).reduce((s, x) => s + x.amount, 0);
+                const val = modal * (1 + Number(inv.mockReturnPct) / 100);
+                return <div key={inv.id} className="flex justify-between text-[12px]"><span className="font-bold">{inv.name} <span className="opacity-50 text-[10px]">{inv.type}</span></span><span className="font-extrabold text-invest">{formatRp(val)} <span className="text-income text-[10px]">+{formatRp(val - modal)}</span></span></div>;
+              })}
+            </Card>
+          )}
+
+          {top5.length > 0 && (
+            <Card icon="workspace_premium" title={L('5 Pengeluaran Terbesar', 'Top 5 Expenses')}>
+              {top5.map((x, i) => (
+                <div key={x.id} className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-expense/10 text-expense text-[11px] font-extrabold flex items-center justify-center">{i + 1}</span>
+                  <div className="flex-1 min-w-0"><p className="text-[12px] font-bold truncate">{title(x)}</p><p className="text-[10px] opacity-50 font-semibold"><Chip type={x.type}>{x.category}</Chip> {fmtShortDate(x.date)}</p></div>
+                  <span className="text-[12px] font-extrabold">{formatRp(x.amount)}</span>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          <Card icon="list_alt" title={L('Rincian Transaksi', 'Transactions')} right={<span className="text-[10px] font-bold opacity-50">{listTx.length}</span>}>
+            {listTx.length === 0 && <p className="text-center opacity-50 text-[12px] py-3">{L('Belum ada transaksi.', 'No transactions.')}</p>}
+            {(showAll ? listTx : listTx.slice(0, 15)).map(x => {
+              const m = txMeta(x.type);
+              return (
+                <div key={x.id} className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0 ${m.badge}`}><span className="material-symbols-rounded text-[16px]">{x.icon || m.icon}</span></div>
+                  <div className="flex-1 min-w-0"><p className="text-[12px] font-bold truncate">{title(x)}</p><p className="text-[10px] opacity-50 font-semibold"><Chip type={x.type}>{x.category}</Chip> {fmtShortDate(x.date)} • {x.creator}</p></div>
+                  <span className={`text-[12px] font-extrabold whitespace-nowrap ${m.text}`}>{m.sign}{formatRp(x.amount)}</span>
+                </div>
+              );
+            })}
+            {listTx.length > 15 && <button onClick={() => setShowAll(!showAll)} className="w-full py-2 bg-accent/10 text-accent font-bold text-xs rounded-xl">{showAll ? L('Ringkas', 'Show less') : L(`Tampilkan semua (${listTx.length})`, `Show all (${listTx.length})`)}</button>}
+          </Card>
         </div>
       );
     }
