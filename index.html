@@ -215,6 +215,7 @@
       const [detailData, setDetailData] = useState(null);
       const [showAllActivity, setShowAllActivity] = useState(false);
       const [txPrefill, setTxPrefill] = useState(null);
+      const [editTx, setEditTx] = useState(null);
       const [loaded, setLoaded] = useState(false);
       const [syncError, setSyncError] = useState(null);
       const t = dict[lang];
@@ -317,6 +318,15 @@
         return true;
       };
 
+      const updateTransactionInCloud = async (tx) => {
+        if (!loaded) return false;
+        const { data, error } = await sb.from('transactions').update(txToRow(tx)).eq('id', tx.id).select().single();
+        if (error) { alert(`${t.saveFail}: ${error.message}`); return false; }
+        const saved = txFromRow(data);
+        setTransactions(prev => prev.map(p => p.id === saved.id ? saved : p));
+        return true;
+      };
+
       const deleteTransactionFromCloud = async (id) => {
         if (!window.confirm(t.confirmDeleteTx)) return false;
         const { error } = await sb.from('transactions').delete().eq('id', id);
@@ -361,16 +371,11 @@
       const currentYear = now.getFullYear();
       const currentMonthIndex = now.getMonth();
 
-      let cycleYear = currentYear;
-      let cycleMonth = currentMonthIndex;
-      if (now.getDate() < 10) {
-        cycleMonth -= 1;
-        if (cycleMonth < 0) { cycleMonth = 11; cycleYear -= 1; }
-      }
-      const nextCycleMonth = cycleMonth === 11 ? 0 : cycleMonth + 1;
-      const nextCycleYear = cycleMonth === 11 ? cycleYear + 1 : cycleYear;
-      const cycleStart = `${cycleYear}-${pad2(cycleMonth + 1)}-10`;
-      const cycleEnd = `${nextCycleYear}-${pad2(nextCycleMonth + 1)}-10`; // eksklusif
+      const _cs = cycleStartOf(now);
+      const cycleYear = _cs.y, cycleMonth = _cs.m;
+      const _cr = cycleRange(cycleYear, cycleMonth);
+      const cycleStart = _cr.start, cycleEnd = _cr.end, cycleKey = _cr.key, cycleLabel = _cr.label;
+      const budgetLimit = (b) => Number(b.limit) + Number((b.topups || {})[cycleKey] || 0); // limit dasar + tambahan siklus ini
       const inCycle = (d) => !!d && d >= cycleStart && d < cycleEnd;
 
       const [reportMonthIndex, setReportMonthIndex] = useState(currentMonthIndex);
@@ -398,7 +403,7 @@
 
       const accName = (id) => accounts.find(a => a.id === id)?.name || (lang === 'id' ? '(dihapus)' : '(deleted)');
       const txTitle = (tx) => tx.type === 'Transfer' ? `${accName(tx.accountId)} → ${accName(tx.toAccountId)}` : (tx.desc || tx.category);
-      const sortedTx = useMemo(() => [...transactions].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), [transactions]);
+      const sortedTx = useMemo(() => [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0)), [transactions]);
 
       const totalLiquidBalance = calculatedAccounts.reduce((sum, acc) => sum + acc.balance, 0);
 
@@ -415,7 +420,7 @@
       const isBillPaid = (billId) => transactions.some(tx => tx.type === 'Bill' && tx.billId === billId && inCycle(tx.date));
 
       const totalRemainingBudget = budgets.reduce((sum, b) => {
-        const remaining = Number(b.limit) - spentInCycle(b.category);
+        const remaining = budgetLimit(b) - spentInCycle(b.category);
         return sum + (remaining > 0 ? remaining : 0);
       }, 0);
 
@@ -425,7 +430,8 @@
 
       const overviewTx = transactions.filter(tx => inCycle(tx.date));
       const overviewInc = overviewTx.filter(tx => tx.type === 'Income').reduce((sum, tx) => sum + Number(tx.amount), 0);
-      const overviewExp = overviewTx.filter(tx => tx.type === 'Expense').reduce((sum, tx) => sum + Number(tx.amount), 0);
+      const cycleTx = sortedTx.filter(tx => inCycle(tx.date));
+      const overviewExp = overviewTx.filter(tx => tx.type === 'Expense' || tx.type === 'Bill').reduce((sum, tx) => sum + Number(tx.amount), 0);
 
       const reportTx = transactions.filter(tx => tx.date && tx.date.startsWith(reportYm));
       const sumType = (type) => reportTx.filter(tx => tx.type === type).reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -456,7 +462,7 @@
         );
       };
 
-      const DetailRow = ({ tx, onDelete }) => {
+      const DetailRow = ({ tx, onDelete, onEdit }) => {
         const m = txMeta(tx.type);
         return (
           <div className="p-3.5 bg-black/5 dark:bg-white/5 rounded-[18px] flex justify-between items-center">
@@ -467,6 +473,7 @@
             </div>
             <div className="flex items-center gap-2">
               <p className={`font-extrabold text-[13px] ${m.text}`}>{m.sign}{formatRp(tx.amount)}</p>
+              {onEdit && <button onClick={onEdit} className="text-accent bg-accent/10 p-1.5 rounded-lg"><span className="material-symbols-rounded text-[14px]">edit</span></button>}
               {onDelete && <button onClick={onDelete} className="text-expense bg-expense/10 p-1.5 rounded-lg"><span className="material-symbols-rounded text-[14px]">delete</span></button>}
             </div>
           </div>
@@ -510,6 +517,7 @@
                     </div>
 
                     <div className="flex flex-col gap-1 pt-1 border-t border-black/5 dark:border-white/5 text-[11px] font-semibold opacity-75">
+                      <div className="flex justify-between text-[9px] uppercase tracking-wider font-bold opacity-70 pb-0.5"><span>{lang === 'id' ? 'Siklus' : 'Cycle'}</span><span>{cycleLabel}</span></div>
                       <div className="flex justify-between"><span>{t.totalBudget}:</span><span className="font-bold">{formatRp(totalRemainingBudget)}</span></div>
                       <div className="flex justify-between"><span>{t.totalBills}:</span><span className="font-bold">{formatRp(totalUnpaidBills)}</span></div>
                     </div>
@@ -578,14 +586,14 @@
 
                   <div>
                     <div className="flex justify-between items-center mb-3 px-1">
-                      <h3 className="text-[16px] font-bold tracking-tight">{t.recent}</h3>
+                      <div><h3 className="text-[16px] font-bold tracking-tight">{t.recent}</h3><p className="text-[10px] opacity-50 font-semibold">{cycleLabel}</p></div>
                       <button onClick={() => setShowAllActivity(true)} className="text-accent text-[12px] font-bold hover:underline">{t.more} &gt;</button>
                     </div>
                     <div className={`${glassClass} rounded-[24px] p-2`}>
-                      {sortedTx.length === 0 ? (
-                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{t.noHistory}</p>
+                      {cycleTx.length === 0 ? (
+                        <p className="text-center opacity-50 py-8 text-[12px] font-semibold">{lang === 'id' ? 'Belum ada transaksi di siklus ini.' : 'No transactions this cycle yet.'}</p>
                       ) : (
-                        sortedTx.slice(0, 5).map(tx => (
+                        cycleTx.slice(0, 5).map(tx => (
                           <TxRow key={tx.id} tx={tx} onClick={() => setDetailData({ title: t.detailTx, type: 'Detail Transaksi', txs: [tx] })} />
                         ))
                       )}
@@ -612,21 +620,23 @@
                     ))}
                   </div>
 
+                  {(planTab === 'Budget' || planTab === 'Bills') && <p className="text-[10px] font-bold opacity-60 text-center">{lang === 'id' ? 'Siklus' : 'Cycle'}: {cycleLabel} • {lang === 'id' ? 'reset otomatis tiap tgl 10' : 'auto-resets on the 10th'}</p>}
                   <div className="space-y-3.5">
                     {planTab === 'Budget' && budgets.length === 0 && <EmptyPlan />}
                     {planTab === 'Budget' && budgets.map(b => {
                       const spent = spentInCycle(b.category);
-                      const pct = b.limit > 0 ? Math.min(100, (spent / b.limit) * 100) : 0;
+                      const eff = budgetLimit(b), extra = eff - Number(b.limit);
+                      const pct = eff > 0 ? Math.min(100, (spent / eff) * 100) : 0;
                       return (
                         <div key={b.id} className={`${glassClass} p-5 rounded-[24px] space-y-3`}>
-                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: sortedTx.filter(tx => tx.type === 'Expense' && tx.category === b.category) })}>
+                          <div className="flex justify-between items-center cursor-pointer" onClick={() => setDetailData({ title: b.category, item: b, type: 'Budget', txs: sortedTx.filter(tx => tx.type === 'Expense' && tx.category === b.category && inCycle(tx.date)) })}>
                             <div>
-                              <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-expense">{b.icon}</span> {b.category}</h4>
-                              <p className="text-[11px] opacity-50 mt-1">{t.budget} (10-10): {formatRp(b.limit)}</p>
+                              <h4 className="font-bold flex items-center gap-1.5 text-[14px] tracking-tight"><span className="material-symbols-rounded text-[18px] text-expense">{b.icon}</span> {b.category} <span className="material-symbols-rounded text-[14px] opacity-40">tune</span></h4>
+                              <p className="text-[11px] opacity-50 mt-1">{t.budget}: {formatRp(eff)}{extra > 0 && <span className="text-accent font-bold"> (+{formatRp(extra)})</span>}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">{t.remaining}</p>
-                              <p className={`font-extrabold text-[14px] ${b.limit - spent < 0 ? 'text-expense' : ''}`}>{formatRp(b.limit - spent)}</p>
+                              <p className={`font-extrabold text-[14px] ${eff - spent < 0 ? 'text-expense' : ''}`}>{formatRp(eff - spent)}</p>
                             </div>
                           </div>
                           <div className="w-full bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
@@ -859,8 +869,8 @@
             )}
 
             {showAllActivity && (
-              <ActivityModal isDark={isDark} t={t} lang={lang} txs={sortedTx} onClose={() => setShowAllActivity(false)}
-                renderRow={(tx) => <DetailRow key={tx.id} tx={tx} onDelete={() => deleteTransactionFromCloud(tx.id)} />} />
+              <ActivityModal isDark={isDark} t={t} lang={lang} txs={sortedTx} cycleStart={cycleStart} cycleEnd={cycleEnd} cycleLabel={cycleLabel} onClose={() => setShowAllActivity(false)}
+                renderRow={(tx) => <DetailRow key={tx.id} tx={tx} onEdit={() => setEditTx(tx)} onDelete={() => deleteTransactionFromCloud(tx.id)} />} />
             )}
 
             {detailData && (
@@ -870,10 +880,15 @@
                     <h2 className="text-[18px] font-extrabold truncate max-w-[75%]">{detailData.title}</h2>
                     <button onClick={() => setDetailData(null)} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
                   </div>
+                  {detailData.type === 'Budget' && (() => {
+                    const lb = budgets.find(x => x.id === detailData.item.id);
+                    return lb ? <BudgetPanel key={lb.id + cycleKey} b={lb} spent={spentInCycle(lb.category)} cycleKey={cycleKey} cycleLabel={cycleLabel} isDark={isDark} lang={lang}
+                      onSave={(nb) => saveCloudSettings('budgets', budgets.map(x => x.id === nb.id ? nb : x))} /> : null;
+                  })()}
                   <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
                     {detailData.txs.length === 0 && <p className="text-center opacity-50 py-8 text-[12px]">{t.noHistory}</p>}
                     {detailData.txs.map(tx => (
-                      <DetailRow key={tx.id} tx={tx}
+                      <DetailRow key={tx.id} tx={tx} onEdit={() => { setDetailData(null); setEditTx(tx); }}
                         onDelete={detailData.type === 'Detail Transaksi' ? async () => { if (await deleteTransactionFromCloud(tx.id)) setDetailData(null); } : null} />
                     ))}
                   </div>
@@ -892,15 +907,17 @@
               </div>
             )}
 
-            {(modal === 'Transaction' || txPrefill) && (
+            {(modal === 'Transaction' || txPrefill || editTx) && (
               <div className="absolute inset-0 bg-black/40 backdrop-blur-md z-[60] flex items-end">
                 <div className={`${isDark ? 'bg-[#1C1C1E]' : 'bg-[#ffffff]'} w-full rounded-t-[36px] p-6 pb-10 shadow-2xl`}>
-                  <FormTransaction
+                  <FormTransaction key={editTx?.id || 'new'} editTx={editTx}
                     t={t} lang={lang} isDark={isDark} accounts={calculatedAccounts} incomeCats={incomeCats} expenseCats={expenseCats} goals={goals} bills={bills} investments={investments} prefill={txPrefill}
-                    onClose={() => { setModal(null); setTxPrefill(null); }}
+                    onClose={() => { setModal(null); setTxPrefill(null); setEditTx(null); }}
                     onSave={async (tx) => {
-                      const ok = await addTransactionToCloud({ ...tx, date: todayStr(), creator: activeUser.name, createdAt: Date.now() });
-                      if (ok) { setModal(null); setTxPrefill(null); }
+                      const ok = editTx
+                        ? await updateTransactionInCloud({ ...editTx, goalId: null, billId: null, investmentId: null, toAccountId: null, ...tx })
+                        : await addTransactionToCloud({ ...tx, date: tx.date || todayStr(), creator: activeUser.name, createdAt: Date.now() });
+                      if (ok) { setModal(null); setTxPrefill(null); setEditTx(null); }
                       return ok;
                     }}
                   />
@@ -916,12 +933,55 @@
     const fmtShortDate = (d) => { if (!d) return '-'; const [y, m, dd] = d.split('-'); return `${Number(dd)} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][Number(m) - 1]} ${y}`; };
     const CHART_COLORS = ['#007AFF', '#FF9500', '#34C759', '#AF52DE', '#FF3B30', '#5AC8FA', '#FFCC00', '#FF2D55'];
 
-    function ActivityModal({ isDark, t, lang, txs, renderRow, onClose }) {
+    const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+    // Siklus: tgl 10 s/d tgl 9 bulan berikutnya. Sebelum tgl 10 masih ikut siklus bulan lalu.
+    const cycleStartOf = (d) => { let y = d.getFullYear(), m = d.getMonth(); if (d.getDate() < 10) { m--; if (m < 0) { m = 11; y--; } } return { y, m }; };
+    const cycleRange = (y, m) => {
+      const ny = m === 11 ? y + 1 : y, nm = m === 11 ? 0 : m + 1;
+      return { start: `${y}-${pad2(m + 1)}-10`, end: `${ny}-${pad2(nm + 1)}-10`, key: `${y}-${pad2(m + 1)}`, label: `10 ${SHORT_MONTHS[m]} – 9 ${SHORT_MONTHS[nm]} ${ny}` };
+    };
+
+    function BudgetPanel({ b, spent, cycleKey, cycleLabel, isDark, lang, onSave }) {
+      const L = (i, e) => lang === 'id' ? i : e;
+      const base = Number(b.limit), extra = Number((b.topups || {})[cycleKey] || 0), eff = base + extra;
+      const [add, setAdd] = useState('');
+      const [baseIn, setBaseIn] = useState('');
+      const [busy, setBusy] = useState(false);
+      const inp = `flex-1 min-w-0 ${isDark ? 'bg-black/30 text-white' : 'bg-[#F2F2F7]'} rounded-[12px] px-3 py-2.5 text-[13px] font-bold outline-none`;
+      const run = async (nb, after) => { if (busy) return; setBusy(true); const ok = await onSave(nb); if (ok) after(); setBusy(false); };
+      const R = ({ l, v, cls = '' }) => <div className="flex justify-between text-[12px] font-semibold"><span className="opacity-60">{l}</span><span className={`font-extrabold ${cls}`}>{v}</span></div>;
+      return (
+        <div className="bg-black/5 dark:bg-white/5 rounded-[20px] p-4 mb-4 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider opacity-50">{L('Siklus', 'Cycle')} {cycleLabel}</p>
+          <R l={L('Limit dasar', 'Base limit')} v={formatRp(base)} />
+          <R l={L('Tambahan siklus ini', 'Added this cycle')} v={`+ ${formatRp(extra)}`} cls="text-accent" />
+          <R l={L('Total anggaran', 'Total budget')} v={formatRp(eff)} />
+          <R l={L('Terpakai', 'Spent')} v={formatRp(spent)} cls="text-expense" />
+          <R l={L('Sisa', 'Remaining')} v={formatRp(eff - spent)} cls={eff - spent < 0 ? 'text-expense' : 'text-income'} />
+          <div className="flex gap-2 pt-2">
+            <input inputMode="numeric" placeholder={L('Tambah nominal (Rp)', 'Add amount (Rp)')} value={formatNumberInput(add)} onChange={e => setAdd(e.target.value.replace(/\D/g, ''))} className={inp} />
+            <button disabled={busy || !Number(add)} onClick={() => run({ ...b, topups: { ...(b.topups || {}), [cycleKey]: extra + Number(add) } }, () => setAdd(''))} className={`px-4 bg-accent text-white rounded-[12px] font-bold text-[12px] ${busy || !Number(add) ? 'opacity-40' : ''}`}>{L('Tambah', 'Add')}</button>
+          </div>
+          {extra > 0 && <button disabled={busy} onClick={() => { if (window.confirm(L('Hapus semua tambahan di siklus ini?', 'Remove all top-ups this cycle?'))) { const tp = { ...(b.topups || {}) }; delete tp[cycleKey]; run({ ...b, topups: tp }, () => {}); } }} className="text-[11px] font-bold text-expense">{L('Hapus tambahan siklus ini', 'Remove this cycle’s top-ups')}</button>}
+          <div className="flex gap-2 pt-1">
+            <input inputMode="numeric" placeholder={L('Ubah limit dasar (permanen)', 'Change base limit (permanent)')} value={formatNumberInput(baseIn)} onChange={e => setBaseIn(e.target.value.replace(/\D/g, ''))} className={inp} />
+            <button disabled={busy || !Number(baseIn)} onClick={() => run({ ...b, limit: Number(baseIn) }, () => setBaseIn(''))} className={`px-4 bg-black/10 dark:bg-white/15 rounded-[12px] font-bold text-[12px] ${busy || !Number(baseIn) ? 'opacity-40' : ''}`}>{L('Ubah', 'Set')}</button>
+          </div>
+          <p className="text-[9px] opacity-50 font-medium">{L('Tambahan hanya berlaku di siklus ini dan otomatis hilang tiap tgl 10. Limit dasar berlaku untuk semua siklus berikutnya.', 'Top-ups apply to this cycle only and reset on the 10th. The base limit carries to all future cycles.')}</p>
+        </div>
+      );
+    }
+
+    function ActivityModal({ isDark, t, lang, txs, renderRow, onClose, cycleStart, cycleEnd, cycleLabel }) {
+      const L = (i, e) => lang === 'id' ? i : e;
+      const [scope, setScope] = useState('cycle');
       const [y, setY] = useState('');
       const [m, setM] = useState('');
       const [d, setD] = useState('');
       const years = [...new Set(txs.map(x => (x.date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
-      const filtered = txs.filter(x => { const [yy, mm, dd] = (x.date || '').split('-'); return (!y || yy === y) && (!m || mm === m) && (!d || dd === d); });
+      const filtered = scope === 'cycle'
+        ? txs.filter(x => x.date >= cycleStart && x.date < cycleEnd)
+        : txs.filter(x => { const [yy, mm, dd] = (x.date || '').split('-'); return (!y || yy === y) && (!m || mm === m) && (!d || dd === d); });
       const shown = filtered.slice(0, 30);
       const sel = `flex-1 min-w-0 ${isDark ? 'bg-black/30 text-white' : 'bg-[#F2F2F7]'} rounded-[12px] px-2 py-2 text-[11px] font-bold outline-none`;
       return (
@@ -931,23 +991,30 @@
               <h2 className="text-[18px] font-extrabold">{t.allActivity}</h2>
               <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
             </div>
-            <div className="flex gap-2 mb-2">
-              <select value={d} onChange={e => setD(e.target.value)} className={sel}>
-                <option value="">{lang === 'id' ? 'Tgl' : 'Day'}</option>
-                {Array.from({ length: 31 }, (_, i) => <option key={i} value={pad2(i + 1)}>{i + 1}</option>)}
-              </select>
-              <select value={m} onChange={e => setM(e.target.value)} className={sel}>
-                <option value="">{lang === 'id' ? 'Bulan' : 'Month'}</option>
-                {MONTH_NAMES[lang].map((n, i) => <option key={i} value={pad2(i + 1)}>{n}</option>)}
-              </select>
-              <select value={y} onChange={e => setY(e.target.value)} className={sel}>
-                <option value="">{lang === 'id' ? 'Tahun' : 'Year'}</option>
-                {years.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
+            <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-[14px] mb-2">
+              {[['cycle', L('Siklus Ini', 'This Cycle')], ['all', L('Riwayat / Filter', 'History / Filter')]].map(([k, lb]) => (
+                <button key={k} onClick={() => setScope(k)} className={`flex-1 py-1.5 text-[11px] font-bold rounded-[10px] transition ${scope === k ? 'bg-white dark:bg-[#2C2C2E] shadow-sm' : 'opacity-60'}`}>{lb}</button>
+              ))}
             </div>
+            {scope === 'cycle' ? <p className="text-[10px] font-bold opacity-60 mb-2">{cycleLabel}</p> : (
+              <div className="flex gap-2 mb-2">
+                <select value={d} onChange={e => setD(e.target.value)} className={sel}>
+                  <option value="">{L('Tgl', 'Day')}</option>
+                  {Array.from({ length: 31 }, (_, i) => <option key={i} value={pad2(i + 1)}>{i + 1}</option>)}
+                </select>
+                <select value={m} onChange={e => setM(e.target.value)} className={sel}>
+                  <option value="">{L('Bulan', 'Month')}</option>
+                  {MONTH_NAMES[lang].map((n, i) => <option key={i} value={pad2(i + 1)}>{n}</option>)}
+                </select>
+                <select value={y} onChange={e => setY(e.target.value)} className={sel}>
+                  <option value="">{L('Tahun', 'Year')}</option>
+                  {years.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+            )}
             <div className="flex justify-between items-center mb-3 text-[10px] font-bold opacity-60">
-              <span>{lang === 'id' ? `Menampilkan ${shown.length} dari ${filtered.length}` : `Showing ${shown.length} of ${filtered.length}`}</span>
-              {(y || m || d) && <button onClick={() => { setY(''); setM(''); setD(''); }} className="text-accent">{lang === 'id' ? 'Reset filter' : 'Clear filter'}</button>}
+              <span>{L(`Menampilkan ${shown.length} dari ${filtered.length}`, `Showing ${shown.length} of ${filtered.length}`)}</span>
+              {scope === 'all' && (y || m || d) && <button onClick={() => { setY(''); setM(''); setD(''); }} className="text-accent">{L('Reset filter', 'Clear filter')}</button>}
             </div>
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-2.5">
               {shown.length === 0 ? <p className="text-center opacity-50 py-12 text-[12px]">{t.noHistory}</p> : shown.map(renderRow)}
@@ -960,9 +1027,9 @@
     function ReportView({ lang, glass, transactions, accounts, budgets, goals, bills, investments, snap, now }) {
       const L = (id, en) => lang === 'id' ? id : en;
       const MN = MONTH_NAMES[lang];
-      const [mode, setMode] = useState('month');
-      const [yr, setYr] = useState(now.getFullYear());
-      const [mo, setMo] = useState(now.getMonth());
+      const [mode, setMode] = useState('cycle');
+      const [yr, setYr] = useState(cycleStartOf(now).y);
+      const [mo, setMo] = useState(cycleStartOf(now).m);
       const [showAll, setShowAll] = useState(false);
 
       const step = (dir) => {
@@ -973,9 +1040,12 @@
       };
       const pref = (y, m) => mode === 'year' ? `${y}` : `${y}-${pad2(m + 1)}`;
       const pv = mode === 'year' ? { y: yr - 1, m: mo } : (mo === 0 ? { y: yr - 1, m: 11 } : { y: yr, m: mo - 1 });
-      const inP = (p) => transactions.filter(tx => tx.date && tx.date.startsWith(p));
-      const cur = inP(pref(yr, mo));
-      const prev = inP(pref(pv.y, pv.m));
+      const inP = (y, m) => {
+        if (mode === 'cycle') { const r = cycleRange(y, m); return transactions.filter(tx => tx.date && tx.date >= r.start && tx.date < r.end); }
+        const p = pref(y, m); return transactions.filter(tx => tx.date && tx.date.startsWith(p));
+      };
+      const cur = inP(yr, mo);
+      const prev = inP(pv.y, pv.m);
       const sum = (arr, ty) => arr.filter(x => x.type === ty).reduce((s, x) => s + x.amount, 0);
       const calc = (arr) => {
         const inc = sum(arr, 'Income'), exp = sum(arr, 'Expense'), bl = sum(arr, 'Bill'), gl = sum(arr, 'Goal'), iv = sum(arr, 'Investasi');
@@ -984,10 +1054,16 @@
       };
       const c = calc(cur), p = calc(prev);
       const out = c.exp + c.bl;
-      const label = mode === 'year' ? `${yr}` : `${MN[mo]} ${yr}`;
-      const prevLabel = mode === 'year' ? `${pv.y}` : `${MN[pv.m]} ${pv.y}`;
+      const label = mode === 'year' ? `${yr}` : mode === 'cycle' ? cycleRange(yr, mo).label : `${MN[mo]} ${yr}`;
+      const prevLabel = mode === 'year' ? `${pv.y}` : mode === 'cycle' ? cycleRange(pv.y, pv.m).label : `${MN[pv.m]} ${pv.y}`;
 
-      const daysN = mode === 'year' ? (yr === now.getFullYear() ? Math.max(1, Math.ceil((now - new Date(yr, 0, 1)) / 864e5)) : 365)
+      const rg = mode === 'cycle' ? cycleRange(yr, mo) : null;
+      const sd = rg ? new Date(rg.start + 'T00:00:00') : null;
+      const ed = rg ? new Date(rg.end + 'T00:00:00') : null;
+      const cycTotal = rg ? Math.round((ed - sd) / 864e5) : 0;
+      const dayNum = (i) => mode === 'cycle' ? new Date(yr, mo, 10 + i).getDate() : i + 1;
+      const daysN = mode === 'cycle' ? (now >= sd && now < ed ? Math.floor((now - sd) / 864e5) + 1 : cycTotal)
+        : mode === 'year' ? (yr === now.getFullYear() ? Math.max(1, Math.ceil((now - new Date(yr, 0, 1)) / 864e5)) : 365)
         : (yr === now.getFullYear() && mo === now.getMonth() ? now.getDate() : new Date(yr, mo + 1, 0).getDate());
 
       const Dl = (a, b, goodUp) => {
@@ -998,10 +1074,10 @@
       };
 
       // tren
-      const n = mode === 'year' ? 12 : new Date(yr, mo + 1, 0).getDate();
+      const n = mode === 'year' ? 12 : mode === 'cycle' ? cycTotal : new Date(yr, mo + 1, 0).getDate();
       const series = Array.from({ length: n }, (_, i) => ({ i, inc: 0, out: 0 }));
       cur.forEach(x => {
-        const s = series[mode === 'year' ? Number(x.date.slice(5, 7)) - 1 : Number(x.date.slice(8, 10)) - 1];
+        const s = series[mode === 'year' ? Number(x.date.slice(5, 7)) - 1 : mode === 'cycle' ? Math.round((new Date(x.date + 'T00:00:00') - sd) / 864e5) : Number(x.date.slice(8, 10)) - 1];
         if (!s) return;
         if (x.type === 'Income') s.inc += x.amount;
         else if (x.type === 'Expense' || x.type === 'Bill') s.out += x.amount;
@@ -1026,6 +1102,9 @@
 
       // anggaran
       const months = mode === 'year' ? (yr === now.getFullYear() ? now.getMonth() + 1 : 12) : 1;
+      const limitFor = (b) => mode === 'year'
+        ? Number(b.limit) * months + Object.entries(b.topups || {}).filter(([k]) => k.startsWith(`${yr}-`)).reduce((a, [, v]) => a + Number(v), 0)
+        : Number(b.limit) + Number((b.topups || {})[pref(yr, mo)] || 0);
       const spentCat = (cat) => cur.filter(x => x.type === 'Expense' && x.category === cat).reduce((s, x) => s + x.amount, 0);
 
       // dompet & pencatat
@@ -1054,8 +1133,8 @@
       if (cats[0]) insights.push(L(`Pengeluaran terbesar: ${cats[0].name} (${(cats[0].v / totalOut * 100).toFixed(0)}% dari uang keluar).`, `Largest outflow: ${cats[0].name} (${(cats[0].v / totalOut * 100).toFixed(0)}%).`));
       if (p.exp + p.bl > 0) { const d = ((out - (p.exp + p.bl)) / (p.exp + p.bl)) * 100; insights.push(L(`Pengeluaran ${d >= 0 ? 'naik' : 'turun'} ${Math.abs(d).toFixed(0)}% dibanding ${prevLabel}.`, `Spending ${d >= 0 ? 'up' : 'down'} ${Math.abs(d).toFixed(0)}% vs ${prevLabel}.`)); }
       if (c.inc > 0) insights.push(c.rate >= 20 ? L(`Rasio tabungan ${c.rate.toFixed(0)}% — sehat (target ≥ 20%).`, `Savings rate ${c.rate.toFixed(0)}% — healthy (goal ≥ 20%).`) : c.rate >= 0 ? L(`Rasio tabungan ${c.rate.toFixed(0)}% — masih di bawah target 20%.`, `Savings rate ${c.rate.toFixed(0)}% — below the 20% goal.`) : L('Defisit: pengeluaran melebihi pemasukan periode ini.', 'Deficit: spending exceeded income this period.'));
-      if (peak.out > 0) insights.push(mode === 'year' ? L(`Bulan paling boros: ${MN[peak.i]} (${formatRp(peak.out)}).`, `Highest-spend month: ${MN[peak.i]} (${formatRp(peak.out)}).`) : L(`Hari paling boros: tanggal ${peak.i + 1} (${formatRp(peak.out)}).`, `Highest-spend day: the ${peak.i + 1}th (${formatRp(peak.out)}).`));
-      budgets.forEach(b => { const s = spentCat(b.category), lim = Number(b.limit) * months; if (lim > 0 && s > lim) insights.push(L(`Anggaran ${b.category} melebihi batas ${formatRp(s - lim)}.`, `${b.category} budget exceeded by ${formatRp(s - lim)}.`)); });
+      if (peak.out > 0) insights.push(mode === 'year' ? L(`Bulan paling boros: ${MN[peak.i]} (${formatRp(peak.out)}).`, `Highest-spend month: ${MN[peak.i]} (${formatRp(peak.out)}).`) : L(`Hari paling boros: tanggal ${dayNum(peak.i)} (${formatRp(peak.out)}).`, `Highest-spend day: the ${dayNum(peak.i)}th (${formatRp(peak.out)}).`));
+      budgets.forEach(b => { const s = spentCat(b.category), lim = limitFor(b); if (lim > 0 && s > lim) insights.push(L(`Anggaran ${b.category} melebihi batas ${formatRp(s - lim)}.`, `${b.category} budget exceeded by ${formatRp(s - lim)}.`)); });
 
       const exportCsv = () => {
         const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -1093,7 +1172,7 @@
 
           <div className={`${glass} rounded-[24px] p-3 space-y-3`}>
             <div className="flex bg-black/5 dark:bg-white/5 p-1 rounded-[16px]">
-              {[['month', L('Bulanan', 'Monthly')], ['year', L('Tahunan', 'Yearly')]].map(([k, lb]) => (
+              {[['cycle', L('Siklus 10–10', 'Cycle')], ['month', L('Bulanan', 'Monthly')], ['year', L('Tahunan', 'Yearly')]].map(([k, lb]) => (
                 <button key={k} onClick={() => setMode(k)} className={`flex-1 py-2 text-[11px] font-bold rounded-[12px] transition ${mode === k ? 'bg-white dark:bg-[#2C2C2E] shadow-sm' : 'opacity-60'}`}>{lb}</button>
               ))}
             </div>
@@ -1164,12 +1243,12 @@
               <line x1="0" y1="110" x2="320" y2="110" stroke="currentColor" opacity="0.15" />
               {series.map(s => {
                 const w = 320 / n, h1 = (s.inc / maxV) * 100, h2 = (s.out / maxV) * 100;
-                const show = mode === 'year' || s.i === 0 || (s.i + 1) % 5 === 0;
+                const show = mode === 'year' || (mode === 'cycle' ? s.i % 5 === 0 : (s.i === 0 || (s.i + 1) % 5 === 0));
                 return (
                   <g key={s.i}>
                     <rect x={s.i * w + w * 0.1} y={110 - h1} width={w * 0.38} height={h1} rx="1.5" fill="#34C759" />
                     <rect x={s.i * w + w * 0.5} y={110 - h2} width={w * 0.38} height={h2} rx="1.5" fill="#FF3B30" />
-                    {show && <text x={s.i * w + w / 2} y="124" fontSize="8" textAnchor="middle" fill="currentColor" opacity="0.5">{mode === 'year' ? MN[s.i].slice(0, 3) : s.i + 1}</text>}
+                    {show && <text x={s.i * w + w / 2} y="124" fontSize="8" textAnchor="middle" fill="currentColor" opacity="0.5">{mode === 'year' ? MN[s.i].slice(0, 3) : dayNum(s.i)}</text>}
                   </g>
                 );
               })}
@@ -1204,7 +1283,7 @@
           {budgets.length > 0 && (
             <Card icon="speed" title={L('Anggaran vs Realisasi', 'Budget vs Actual')}>
               {budgets.map(b => {
-                const s = spentCat(b.category), lim = Number(b.limit) * months, pct = lim > 0 ? (s / lim) * 100 : 0;
+                const s = spentCat(b.category), lim = limitFor(b), pct = lim > 0 ? (s / lim) * 100 : 0;
                 return (
                   <div key={b.id} className="space-y-1">
                     <div className="flex justify-between text-[12px]"><span className="font-bold">{b.category}</span><span className="font-extrabold">{formatRp(s)} <span className="opacity-50 text-[10px]">/ {formatRp(lim)}</span></span></div>
@@ -1213,7 +1292,7 @@
                   </div>
                 );
               })}
-              <p className="text-[9px] opacity-50 font-medium">{L('Dihitung per bulan kalender.', 'Calculated per calendar month.')}</p>
+              <p className="text-[9px] opacity-50 font-medium">{mode === 'cycle' ? L('Siklus 10–10, sudah termasuk tambahan anggaran.', '10th–10th cycle, incl. budget top-ups.') : L('Dihitung per bulan kalender.', 'Calculated per calendar month.')}</p>
             </Card>
           )}
 
@@ -1448,7 +1527,7 @@
       );
     }
 
-    function FormTransaction({ t, lang, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, onClose, onSave }) {
+    function FormTransaction({ editTx, t, lang, isDark, accounts, incomeCats, expenseCats, goals, bills, investments, prefill, onClose, onSave }) {
       const optionsFor = (tp) => {
         if (tp === 'Expense') return expenseCats.map(c => ({ value: c, label: c }));
         if (tp === 'Income') return incomeCats.map(c => ({ value: c, label: c }));
@@ -1458,18 +1537,23 @@
         return [];
       };
 
-      const initialType = prefill?.type || 'Expense';
-      const initialRaw = prefill?.amount ? String(prefill.amount) : '';
+      const initialType = editTx?.type || prefill?.type || 'Expense';
+      const initialRaw = editTx ? String(Math.round(editTx.amount)) : (prefill?.amount ? String(prefill.amount) : '');
       const [type, setType] = useState(initialType);
       const [rawAmount, setRawAmount] = useState(initialRaw);
       const [displayAmount, setDisplayAmount] = useState(formatNumberInput(initialRaw));
-      const [accountId, setAccountId] = useState(accounts[0]?.id || '');
-      const [toAccountId, setToAccountId] = useState(accounts[1]?.id || '');
-      const [selection, setSelection] = useState(() => prefill?.goalId || prefill?.billId || prefill?.investmentId || prefill?.category || optionsFor(initialType)[0]?.value || '');
-      const [desc, setDesc] = useState(prefill?.desc || '');
+      const [accountId, setAccountId] = useState(editTx?.accountId || accounts[0]?.id || '');
+      const [toAccountId, setToAccountId] = useState(editTx?.toAccountId || accounts[1]?.id || '');
+      const [selection, setSelection] = useState(() => editTx ? (editTx.goalId || editTx.billId || editTx.investmentId || editTx.category) : prefill?.goalId || prefill?.billId || prefill?.investmentId || prefill?.category || optionsFor(initialType)[0]?.value || '');
+      const [desc, setDesc] = useState(editTx ? (editTx.desc || '') : (prefill?.desc || ''));
+      const [date, setDate] = useState(editTx?.date || todayStr());
       const [saving, setSaving] = useState(false);
 
-      const options = optionsFor(type);
+      let options = optionsFor(type);
+      if (editTx && type === editTx.type && type !== 'Transfer') { // pertahankan kategori/item lama walau sudah dihapus
+        const ev = type === 'Goal' ? editTx.goalId : type === 'Bill' ? editTx.billId : type === 'Investasi' ? editTx.investmentId : editTx.category;
+        if (ev && !options.some(o => o.value === ev)) options = [...options, { value: ev, label: editTx.category }];
+      }
 
       // Pastikan kategori selalu valid untuk jenis transaksi yang dipilih
       useEffect(() => {
@@ -1494,13 +1578,13 @@
         const num = parseFloat(rawAmount) || 0;
         if (num <= 0) return;
 
-        const tx = { type, amount: num, accountId, desc, icon: txMeta(type).icon };
+        const tx = { type, amount: num, accountId, desc, date: date || todayStr(), icon: txMeta(type).icon };
 
         if (type === 'Transfer') {
           if (accounts.length < 2) { alert(t.needTwoWallets); return; }
           if (!toAccountId || toAccountId === accountId) { alert(t.sameWallet); return; }
           const src = accounts.find(a => a.id === accountId);
-          if (src && num > src.balance && !window.confirm(t.lowBalance)) return;
+          if (!editTx && src && num > src.balance && !window.confirm(t.lowBalance)) return;
           tx.toAccountId = toAccountId;
           tx.category = 'Transfer';
         } else {
@@ -1522,7 +1606,7 @@
       return (
         <div className="space-y-4">
           <div className="flex justify-between items-center mb-1">
-            <h2 className="text-[20px] font-extrabold">{t.addTx}</h2>
+            <h2 className="text-[20px] font-extrabold">{editTx ? (lang === 'id' ? 'Edit Transaksi' : 'Edit Transaction') : t.addTx}</h2>
             <button onClick={onClose} className="bg-black/5 dark:bg-white/10 w-8 h-8 rounded-full flex items-center justify-center"><span className="material-symbols-rounded text-[16px]">close</span></button>
           </div>
 
@@ -1580,6 +1664,11 @@
           <div>
             <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{t.note}</label>
             <input type="text" placeholder="..." value={desc} onChange={e => setDesc(e.target.value)} className={inputClass} />
+          </div>
+
+          <div>
+            <label className="text-[9px] font-bold uppercase opacity-50 mb-1 block">{lang === 'id' ? 'Tanggal' : 'Date'}</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ colorScheme: isDark ? 'dark' : 'light' }} className={inputClass} />
           </div>
 
           <button disabled={saving} onClick={submit} className={`w-full bg-accent text-white font-extrabold text-[15px] py-3.5 rounded-[16px] mt-1 shadow-[0_10px_24px_rgba(0,122,255,0.3)] ${saving ? 'opacity-50' : ''}`}>
